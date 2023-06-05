@@ -19,3 +19,4 @@ yolov5.pt
 # data/hyps
 data/images
 #data/scripts
+log.txt

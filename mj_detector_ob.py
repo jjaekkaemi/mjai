@@ -602,7 +602,7 @@ class BoardDefectDetect(QThread):
                     # save_img = cv2.resize(save_img, (save_img.shape[0]//2, save_img.shape[1]//2))
                     
                     self.defect_flag = False
-                write_file = f"/media/user/exFAT/mj_test/230522/ori/{dtime}.jpg"
+                write_file = f"/media/user/exFAT/mj_test/230605/ori/{dtime}.jpg"
                 cv2.imwrite(write_file, self.board_model.frame)
             # print(path.stem, "board count", self.board_count, "self.defect_count", sum(self.defect_count_list), "self.defect_type_count", self.defect_type_count)
    
@@ -952,6 +952,7 @@ class Main(QWidget):
                             self.inspection_start_time.setText(get_datetime())
                     self.boardDefectDetect.start()
                     self.inspection_start_btn.setText("검사중..")
+                    self.camera_view_button.setEnabled(False)
                     self.inspection_start_btn.setEnabled(False)
                     self.inspection_stop_btn.setEnabled(True)
             #self.start_start_message_box()
@@ -963,6 +964,7 @@ class Main(QWidget):
                     self.inspection_start_time.setText(get_datetime())
                 self.boardDefectDetect.start()
                 self.inspection_start_btn.setText("검사중..")
+                self.camera_view_button.setEnabled(False)
                 self.inspection_start_btn.setEnabled(False)
                 self.inspection_stop_btn.setEnabled(True)
         elif button.text() == "새로 시작":
@@ -973,6 +975,7 @@ class Main(QWidget):
                     self.inspection_start_time.setText(get_datetime())
                 self.boardDefectDetect.start()
                 self.inspection_start_btn.setText("검사중..")
+                self.camera_view_button.setEnabled(False)
                 self.inspection_start_btn.setEnabled(False)
                 self.inspection_stop_btn.setEnabled(True)
         elif button.text() == "종료":
@@ -983,6 +986,7 @@ class Main(QWidget):
 
                 self.boardDefectDetect.stop(False)
                 self.inspection_start_btn.setText("검사 시작")
+                self.camera_view_button.setEnabled(True)
                 self.inspection_start_btn.setEnabled(True)
                 self.inspection_stop_btn.setEnabled(False)
         elif button.text() == "완료":
@@ -990,6 +994,7 @@ class Main(QWidget):
                 self.inspection_stop_time.setText(get_datetime())
                 self.boardDefectDetect.stop(True, True)
                 self.inspection_start_btn.setText("검사 시작")
+                self.camera_view_button.setEnabled(True)
                 self.inspection_start_btn.setEnabled(True)
                 self.inspection_stop_btn.setEnabled(False)
         elif button.text() == "저장":
@@ -997,6 +1002,7 @@ class Main(QWidget):
                 self.inspection_stop_time.setText(get_datetime())
                 self.boardDefectDetect.stop(True, False)
                 self.inspection_start_btn.setText("검사 시작")
+                self.camera_view_button.setEnabled(True)
                 self.inspection_start_btn.setEnabled(True)
                 self.inspection_stop_btn.setEnabled(False)
     def start_message_box(self):
