@@ -1,0 +1,21 @@
+build/
+classify/
+dist/
+runs/
+segment/
+test/
+yolov5/
+# benchmarks.py
+# CITATION.cff
+# CONTRIBUTING.md
+# hubconf.py
+*.db
+# mj_detect_ob.spec
+# test.py
+# train.py
+# tutorial.ipynb
+# val.py
+yolov5.pt
+# data/hyps
+data/images
+#data/scripts
