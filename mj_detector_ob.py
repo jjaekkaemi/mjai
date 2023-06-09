@@ -28,7 +28,7 @@ import cv2
 from database import SQLDatabase
 import detect_alarm
 EDGE_CHECK_SIZE = [0, 90, 90]
-SOUND_LIST = ["미납.mp3", "미삽.mp3", "쇼트.mp3"]
+SOUND_LIST = ["no_s.mp3", "no_f.mp3", "s.mp3"]
 
 # [jk] add
 stacked_widget_page = 0
@@ -602,7 +602,7 @@ class BoardDefectDetect(QThread):
                     # save_img = cv2.resize(save_img, (save_img.shape[0]//2, save_img.shape[1]//2))
                     
                     self.defect_flag = False
-                write_file = f"/media/user/exFAT/mj_test/230605/ori/{dtime}.jpg"
+                write_file = f"/media/user/exFAT/mj_test/230609/ori/{dtime}.jpg"
                 cv2.imwrite(write_file, self.board_model.frame)
             # print(path.stem, "board count", self.board_count, "self.defect_count", sum(self.defect_count_list), "self.defect_type_count", self.defect_type_count)
    
