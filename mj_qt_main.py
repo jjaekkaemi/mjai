@@ -10,8 +10,6 @@ import sys, datetime
 from mj_detector_ob_copy import BoardDefectDetect,PRODUCT_FLAG
 from database import SQLDatabase
 SOUND_LIST = ["no_s.mp3", "no_f.mp3", "s.mp3"]
-stacked_widget_page = 0
-
 def change_date_format(str_time):
 	if len(str(str_time))==2 :
 		return str(str_time)
@@ -292,30 +290,25 @@ class Main(QWidget):
             img = QImage(im, im.shape[1], im.shape[0], im.strides[0], QImage.Format_BGR888)
             self.camera_img_label.setPixmap(QPixmap.fromImage(img).scaled(1296, 972, Qt.IgnoreAspectRatio))
     def on_camera_button(self):
-            global stacked_widget_page
-            stacked_widget_page = 0
+
             self.stackedWidget.setCurrentIndex(0)
             self.boardDefectDetect.stop_camera()
     def on_camera_view(self):
-            global stacked_widget_page
-            stacked_widget_page = 2
+
             self.stackedWidget.setCurrentIndex(2)
             self.boardDefectDetect.start()
     # [jk] add
     def stacked_widget_check(self):
         # [jk] add
-        global stacked_widget_page
 
         if self.boardDefectDetect.defect_show_list:
                         
                 self.defect_img_label.setPixmap(self.boardDefectDetect.defect_show_list[0])
                 self.stackedWidget.setCurrentIndex(1)
-                # [jk] add
-                stacked_widget_page = 1
-        else:
-            self.stackedWidget.setCurrentIndex(0)
-            # [jk] add
-            stacked_widget_page = 0
+
+        # else:
+        #     self.stackedWidget.setCurrentIndex(0)
+
     def detect_defect(self, defect):
         self.playlist.clear()
 
@@ -582,13 +575,20 @@ class Main(QWidget):
 
     def on_defect_show(self):
         # self.stackedWidget.setCurrentIndex(0)
-        if self.boardDefectDetect.get_working():
-            self.boardDefectDetect.del_defect_show_list()
-        else: 
+        self.boardDefectDetect.del_defect_show_list()
+        if self.boardDefectDetect.defect_show_list:
+
+            self.defect_img_label.setPixmap(self.boardDefectDetect.defect_show_list[0])
+        else:
             self.stackedWidget.setCurrentIndex(0)
     def keyPressEvent(self,event):
         if event.key() == Qt.Key_B:
             self.boardDefectDetect.del_defect_show_list()
+            if self.boardDefectDetect.defect_show_list:
+
+                self.defect_img_label.setPixmap(self.boardDefectDetect.defect_show_list[0])
+            else:
+                self.stackedWidget.setCurrentIndex(0)
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)

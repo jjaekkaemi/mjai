@@ -30,15 +30,17 @@ if PRODUCT_FLAG:
     import detect_alarm
     import mes_requests as mes
     MODEL_PATH = "/opt/MVS/Samples/64/Python/GrabImage/yolov5_/"
-TEST_IMG_PATH = "/home/pi/ipo_test2"
+TEST_IMG_PATH = "/home/pi/image"
 
 # [jk] add
 stacked_widget_page = 0
 
 IPO_POS_CHECK = [0.34, 0.55, 0.45, 0.70]
 LIST_LENTH = 2
+IPGNPE_LIST_LENTH = 5
 RESULT_SIZE = [992, 1088, 928]
 CROP_IMG_SIZE = (700,560)
+IPGNPE_CROP_IMG_SIZE = (352, 292)
 def change_time_format(str_time):
 	if len(str(str_time))==2 :
 		return str(str_time)
@@ -162,6 +164,7 @@ class BoardDefectDetect(QThread):
 
 
         self.defect_type = [0, 0, 0, 0, 0, 0, 0,1, 1,0, 2,1,0, 0, 0, 3, 1, 3, 0, 3, 3, 3, 1,3,3,3,3,3]
+        self.ipgnpe_defect_type = [0,2,3,0,0,1,3,0,1,3]
         self.defect_type_count = [0,0,0]
 
         self.defect_type_list = ["미납","리드미삽", "쇼트", ""]
@@ -182,6 +185,9 @@ class BoardDefectDetect(QThread):
         
         self.board_check_flag = 0
 
+        self.select_board_model = self.board_model
+        self.select_defect_model = self.defect_model
+        self.select_defect_type = self.defect_type
         #self.today_inspection = self.sqldatabase.check_today_table(self.get_inspection_json(), self.workorder.get_current_text())
         # self.ui_change.emit(self.today_inspection, True)
         # self.ui_value_change(self.today_inspection, True)
@@ -237,7 +243,7 @@ class BoardDefectDetect(QThread):
                                 print("no data")
                         self.sleep(0.01)
                 else:
-                    dataset = LoadImages(TEST_IMG_PATH, img_size=[416,416], stride=32, auto=self.board_model.model.pt, vid_stride=1)
+                    dataset = LoadImages(TEST_IMG_PATH, img_size=[416,416], stride=32, auto=self.select_board_model.model.pt, vid_stride=1)
                     for path, im, im0s, vid_cap, s in dataset:
                         if self.camera_working:
                             
@@ -247,11 +253,15 @@ class BoardDefectDetect(QThread):
                             break
 
         else:
+            if self.workorder_item.get_current_text().find("IPG") != -1:
+                self.select_board_model = self.ipgnpe_board_model
+                self.select_defect_model = self.ipgnpe_defect_model
+                self.select_defect_type = self.ipgnpe_defect_type
             self.file_write = open("log.txt", "a")
             self.is_post = False
             self.working=True
             self.defect_show_list = [] 
-            
+
             if PRODUCT_FLAG:  
                 while self.working:
                     
@@ -260,9 +270,12 @@ class BoardDefectDetect(QThread):
                             # print ("get one frame: Width[%d], Height[%d], PixelType[0x%d], nFrameNum[%d]"  % (stFrameInfo.nWidth, stFrameInfo.nHeight, stFrameInfo.enPixelType,stFrameInfo.nFrameNum))
                             data = np.frombuffer(self.data_buf, count=int(self.stFrameInfo.nFrameLen), dtype=np.uint8)
                             frame = image_control(data=data, stFrameInfo=self.stFrameInfo)
-                            self.board_model.img_processing(frame)
-                            self.board_model.inference()
-                            self.board_detect()
+                            self.select_board_model.img_processing(frame)
+                            self.select_board_model.inference()
+                            if self.workorder_item.get_current_text().find("IPG") != -1:
+                                self.ipgnpe_board_detect()
+                            else:    
+                                self.board_detect()
                             # predict_list = self.board_model.process_predictions(board_pred, frame, im)
 
                                     
@@ -271,13 +284,16 @@ class BoardDefectDetect(QThread):
                     
                     self.sleep(0.01)
             else:
-                dataset = LoadImages(TEST_IMG_PATH, img_size=[416,416], stride=32, auto=self.board_model.model.pt, vid_stride=1)
+                dataset = LoadImages(TEST_IMG_PATH, img_size=[416,416], stride=32, auto=self.select_board_model.model.pt, vid_stride=1)
                 for path, im, im0s, vid_cap, s in dataset:
                     if self.working:
                         start = time.time()
-                        self.board_model.img_processing(im0s)
-                        self.board_model.inference()
-                        self.board_detect(path)
+                        self.select_board_model.img_processing(im0s)
+                        self.select_board_model.inference()
+                        if self.workorder_item.get_current_text().find("IPG") != -1:
+                            self.ipgnpe_board_detect(path)
+                        else:    
+                            self.board_detect(path)
                         end = time.time()
                         print(f"detect time : {end-start}")
                             
@@ -362,19 +378,33 @@ class BoardDefectDetect(QThread):
         else : 
 
             return []
+    def ipgnpe_board_check(self, ob_xyxy_list, ob_xywh_list):
+        if len(ob_xyxy_list)==25:
+            sorted_data = sorted(ob_xywh_list, key = lambda x: x[1])
+            final_sorted_data = []
+            ob_xyxy_list2 = []
+            for i in range(0, len(sorted_data), 5):
+                group = sorted_data[i:i+5]
+                group_sorted = sorted(group, key = lambda x: x[0] * x[1])
+                final_sorted_data.extend(group_sorted)
+            for fi in final_sorted_data:
+                ob_xyxy_list2.append(ob_xyxy_list[fi[4]])
+            return ob_xyxy_list2
+        else:
+            return []
 
     def board_detect(self, p=None):     
         if not PRODUCT_FLAG:
             p = Path(p)
-        for i, det in enumerate(self.board_model.pred):
-            im0 = self.board_model.frame.copy()
+        for i, det in enumerate(self.select_board_model.pred):
+            im0 = self.select_board_model.frame.copy()
             gn = torch.tensor(im0.shape)[[1, 0, 1, 0]] 
             imc = im0.copy()
             
             ipg_center_check = False
             if len(det):
                 # Rescale boxes from img_size to im0 size
-                det[:, :4] = scale_boxes(self.board_model.im.shape[2:], det[:, :4], im0.shape).round()
+                det[:, :4] = scale_boxes(self.select_board_model.im.shape[2:], det[:, :4], im0.shape).round()
                 xywh_count = 0
                 ob_xyxy_list = []
                 ob_xywh_list = []
@@ -387,7 +417,7 @@ class BoardDefectDetect(QThread):
 
                         xywh.append(xywh_count)
                         xywh_count += 1
-                        crop_img=self.board_model.img_crop(xyxy, imc) ###
+                        crop_img=self.select_board_model.img_crop(xyxy, imc) ###
 
 
                         ob_xyxy_list.append(crop_img)
@@ -421,9 +451,9 @@ class BoardDefectDetect(QThread):
                     defect_check_count = False
                     for board in board_list :
                         defect_check = False
-                        self.defect_model.img_processing(board)
-                        self.defect_model.inference()
-                        for i, det in enumerate(self.defect_model.pred):
+                        self.select_defect_model.img_processing(board)
+                        self.select_defect_model.inference()
+                        for i, det in enumerate(self.select_defect_model.pred):
                             board_im0 = board.copy()
                             board_gn = torch.tensor(board_im0.shape)[[1, 0, 1, 0]]  # normalization gain whwh
                             annotator = Annotator(board_im0, line_width=self.line_thickness, example=str(self.defect_type_list))
@@ -431,7 +461,7 @@ class BoardDefectDetect(QThread):
                                 self.file_write.write(f"\r\n\r\n======== {dtime} ========\r\n")
                                 
                                 # Rescale boxes from img_size to im0 size
-                                det[:, :4] = scale_boxes(self.defect_model.im.shape[2:], det[:, :4], board_im0.shape).round()
+                                det[:, :4] = scale_boxes(self.select_defect_model.im.shape[2:], det[:, :4], board_im0.shape).round()
                                 # Write results
 
                                 for *xyxy, conf, cls in reversed(det):
@@ -441,27 +471,27 @@ class BoardDefectDetect(QThread):
                                         if (xywh_defect[0]>=0.19 and xywh_defect[0]<=0.24 and xywh_defect[1]>=0.02 and xywh_defect[1]<=0.15) or (xywh_defect[0]>=0.76 and xywh_defect[0]<=0.82 and xywh_defect[1]>=0.84 and xywh_defect[1]<=0.91) :
                                             pass
                                         else:
-                                            self.file_write.write(f"{self.defect_model.model.names[c]}  {conf} {xywh_defect}\r\n")
+                                            self.file_write.write(f"{self.select_defect_model.model.names[c]}  {conf} {xywh_defect}\r\n")
                                             defect_check = True
                                             defect_check_count = True
-                                            self.defect_type_count[self.defect_type[c]]+=1
+                                            self.defect_type_count[self.select_defect_type[c]]+=1
 
 
-                                            self.defect_type_label = self.defect_type_list[self.defect_type[c]]
-                                            defect_list.append(self.defect_type[c])
+                                            self.defect_type_label = self.defect_type_list[self.select_defect_type[c]]
+                                            defect_list.append(self.select_defect_type[c])
                                             label = ""
                                             annotator.box_label(xyxy, label, color=colors(c, True))
                                     else:
 
-                                        self.file_write.write(f"{self.defect_model.model.names[c]}  {conf} {xywh_defect}\r\n")
+                                        self.file_write.write(f"{self.select_defect_model.model.names[c]}  {conf} {xywh_defect}\r\n")
                                         defect_check = True
                                         defect_check_count = True
-                                        self.defect_type_count[self.defect_type[c]]+=1
+                                        self.defect_type_count[self.select_defect_type[c]]+=1
 
                                                         
   
-                                        self.defect_type_label = self.defect_type_list[self.defect_type[c]]
-                                        defect_list.append(self.defect_type[c])
+                                        self.defect_type_label = self.defect_type_list[self.select_defect_type[c]]
+                                        defect_list.append(self.select_defect_type[c])
                                         label = ""
                                         annotator.box_label(xyxy, label, color=colors(c, True))
 
@@ -494,13 +524,157 @@ class BoardDefectDetect(QThread):
                         # save_img = cv2.resize(save_img, (save_img.shape[0]//2, save_img.shape[1]//2))
                         
                 write_file = f"/media/user/exFAT/mj_test/230609/ori/{dtime}.jpg"
-                cv2.imwrite(write_file, self.board_model.frame)
+                cv2.imwrite(write_file, self.select_board_model.frame)
             # print(path.stem, "board count", self.board_count, "self.defect_count", sum(self.defect_count_list), "self.defect_type_count", self.defect_type_count)
    
         self.update_data.emit(self.board_count, self.defect_count, self.defect_type_label)
-        print("board",self.board_count, "defect", self.defect_count, "type_count", self.defect_type_count )
     # def ipgnpe_board_check(self):
-    # def ipgnpe_board_detect(self, p=None):
+    def ipgnpe_board_detect(self, p=None):
+        if not PRODUCT_FLAG:
+            p = Path(p)
+        for i, det in enumerate(self.select_board_model.pred):
+            im0 = self.select_board_model.frame.copy()
+            gn = torch.tensor(im0.shape)[[1, 0, 1, 0]] 
+            imc = im0.copy()
+            
+            ipg_center_check = False
+            if len(det):
+                # Rescale boxes from img_size to im0 size
+                det[:, :4] = scale_boxes(self.select_board_model.im.shape[2:], det[:, :4], im0.shape).round()
+                xywh_count = 0
+                ob_xyxy_list = []
+                ob_xywh_list = []
+
+                
+                for *xyxy, conf, cls in reversed(det):
+                    xywh = (xyxy2xywh(torch.tensor(xyxy).view(1, 4)) / gn).view(-1).tolist()
+                    c = int(cls)
+
+                    if c == 1:
+                        if xywh[0]>0.42 and xywh[0]<0.56:
+                            continue
+                        else:
+                            xywh_count = 0
+                            ob_xyxy_list = []
+                            ob_xywh_list = []
+                            break
+
+                    elif c == 0 :
+                        xywh.append(xywh_count)
+                        xywh_count += 1
+                        crop_img=self.select_board_model.img_crop(xyxy, imc) ###
+
+
+                        ob_xyxy_list.append(crop_img)
+                        ob_xywh_list.append(xywh)
+                    
+                
+                board_list = self.ipgnpe_board_check(ob_xyxy_list, ob_xywh_list)
+                if board_list :
+                    ipg_center_check = True
+                    if self.board_check_flag == 0 :
+                        self.board_check_flag = 1
+                        self.board_count += len(board_list)
+                    elif self.board_check_flag == 1:
+                        self.board_check_flag = 2
+                else:
+                    xywh_count = 0
+                    ob_xyxy_list = []
+                    ob_xywh_list = []
+                    ipg_center_check = False
+                    self.board_check_flag = 0
+
+                result_list = []
+                board_count = 0
+                dtime = datetime.datetime.now()
+                dtime = f"{dtime.year}{change_time_format(dtime.month)}{change_time_format(dtime.day)}{change_time_format(dtime.hour)}{change_time_format(dtime.minute)}{change_time_format(dtime.second)}"
+                edge_count = 0
+                defect_list = []
+                print(len(board_list))
+                
+                if ipg_center_check and self.board_check_flag == 1:
+                    defect_check_count = False
+                    for board in board_list :
+                        defect_check = False
+                        self.select_defect_model.img_processing(board)
+                        self.select_defect_model.inference()
+                        for i, det in enumerate(self.select_defect_model.pred):
+                            board_im0 = board.copy()
+                            board_gn = torch.tensor(board_im0.shape)[[1, 0, 1, 0]]  # normalization gain whwh
+                            annotator = Annotator(board_im0, line_width=self.line_thickness, example=str(self.defect_type_list))
+                            # cv2.imwrite(f"/home/pi/test/{p.stem}_{board_count}.jpg", board)
+                            # board_count+=1
+                            if len(det):
+                                self.file_write.write(f"\r\n\r\n======== {dtime} ========\r\n")
+                                
+                                # Rescale boxes from img_size to im0 size
+                                det[:, :4] = scale_boxes(self.select_defect_model.im.shape[2:], det[:, :4], board_im0.shape).round()
+                                # Write results
+
+                                for *xyxy, conf, cls in reversed(det):
+                                    xywh_defect = (xyxy2xywh(torch.tensor(xyxy).view(1, 4)) / board_gn).view(-1).tolist()
+                                    c = int(cls)
+                                    if self.workorder_item.get_current_text().find("230M") != -1 and c== 22 :
+                                        if (xywh_defect[0]>=0.19 and xywh_defect[0]<=0.24 and xywh_defect[1]>=0.02 and xywh_defect[1]<=0.15) or (xywh_defect[0]>=0.76 and xywh_defect[0]<=0.82 and xywh_defect[1]>=0.84 and xywh_defect[1]<=0.91) :
+                                            pass
+                                        else:
+                                            self.file_write.write(f"{self.select_defect_model.model.names[c]}  {conf} {xywh_defect}\r\n")
+                                            defect_check = True
+                                            defect_check_count = True
+                                            self.defect_type_count[self.select_defect_type[c]]+=1
+
+
+                                            self.defect_type_label = self.defect_type_list[self.select_defect_type[c]]
+                                            defect_list.append(self.select_defect_type[c])
+                                            label = ""
+                                            annotator.box_label(xyxy, label, color=colors(c, True))
+                                    else:
+
+                                        self.file_write.write(f"{self.select_defect_model.model.names[c]}  {conf} {xywh_defect}\r\n")
+                                        defect_check = True
+                                        defect_check_count = True
+                                        self.defect_type_count[self.select_defect_type[c]]+=1
+
+                                                        
+  
+                                        self.defect_type_label = self.defect_type_list[self.select_defect_type[c]]
+                                        defect_list.append(self.select_defect_type[c])
+                                        label = ""
+                                        annotator.box_label(xyxy, label, color=colors(c, True))
+
+
+
+                            crop_im0 = annotator.result()
+                            
+                            crop_im0 = cv2.resize(crop_im0, IPGNPE_CROP_IMG_SIZE)
+                            result_list.append(crop_im0) 
+
+
+                        if defect_check :
+                            self.defect_count +=1
+                        
+                    if len(result_list)==25 and defect_check_count:
+                        img_list = [result_list[i:i+IPGNPE_LIST_LENTH] for i in range(0, len(result_list), IPGNPE_LIST_LENTH)]
+                        save_img = cv2.vconcat([cv2.hconcat(img) for img in img_list])
+                        save_img = cv2.rotate(save_img, cv2.ROTATE_180)
+   
+                        shown_img = QImage(save_img, save_img.shape[1], save_img.shape[0], save_img.strides[0], QImage.Format_BGR888)
+                        # shown_hori_img = QImage(save_img, save_img.shape[1], save_img.shape[0], save_img.strides[0], QImage.Format_BGR888)
+
+                        self.defect_show_list.append(QPixmap.fromImage(shown_img).scaled(save_img.shape[1], RESULT_SIZE[0], Qt.IgnoreAspectRatio))
+                        self.bad_img_label.setPixmap(QPixmap.fromImage(shown_img).scaled(RESULT_SIZE[1], RESULT_SIZE[2], Qt.IgnoreAspectRatio))
+                        if PRODUCT_FLAG :
+                            detect_alarm.buzzer_on()
+                            self.sound_data.emit(defect_list)
+
+                        cv2.imwrite(f"test/{dtime}.jpg", save_img)
+                        # save_img = cv2.resize(save_img, (save_img.shape[0]//2, save_img.shape[1]//2))
+                        
+                write_file = f"/media/user/exFAT/mj_test/230609/ori/{dtime}.jpg"
+                cv2.imwrite(write_file, self.select_board_model.frame)
+            # print(path.stem, "board count", self.board_count, "self.defect_count", sum(self.defect_count_list), "self.defect_type_count", self.defect_type_count)
+   
+        self.update_data.emit(self.board_count, self.defect_count, self.defect_type_label)
          
     
     def get_working(self):
