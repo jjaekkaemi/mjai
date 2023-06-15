@@ -2,71 +2,19 @@ import requests, json
 from PySide2.QtCore import *
 from PySide2.QtGui import *
 from PySide2.QtWidgets import *
+import mes_requests as mes
 def change_number(num):
     if len(str(num))>4:
         return str(num)[:-3]+","+str(num)[-3:]
     return str(num)
 
-def get_inspector():
-    try:
-        url = "https://mj.d-triple.com/api/mes/v1/external/inspector"
-        headers = {"Content-Type": "application/json"}
-        response = requests.get(url, headers=headers)
-    
-        return json.loads(response.text.encode().decode('unicode-escape'))["objects"]
-
-    except:
-        return []
-
-def get_workorder():
-    try:
-        url = "https://mj.d-triple.com/api/mes/v1/external/workorder"
-        headers = {"Content-Type": "application/json"}
-        response = requests.get(url, headers=headers)
-    
-        return json.loads(response.text.encode().decode('unicode-escape'))["objects"]
-    except:
-        return []
-
-def get_workorder_list(id):
-    try:
-        url = f"https://mj.d-triple.com/api/mes/v1/external/workorder/{id}"
-        headers = {"Content-Type": "application/json"}
-        response = requests.get(url, headers=headers)
-
-        return json.loads(response.text.encode().decode('unicode-escape'))["objects"]
-    except:
-        return []
-# def post_inspection():
-#     try:
-#         url = f"https://mj.d-triple.com/api/mes/v1/external/inspection"
-#         headers = {"Content-Type": "application/json"}
-#         inspection_json = {
-#             "workorder_imte_id":, 
-#             "inspection_date":, 
-#             "start_date":,
-#             "end_date":,
-#             "inspector_name":,
-#             "workorder_quantity":,
-#             "inspection_quatity":,
-#             "inspection_percent":,
-#             "bad_quantity":,
-#             "bad_type":,
-#             "normal_quantity":,
-
-            
-#             }
-#         response = requests.post(url, headers=headers, json={"workorder_imte_id":,})
-        
-#     except:
-#         print("error")
 def request_list(num, id=None):
     if num == 0 :
-        return get_inspector()
+        return mes.get_inspector()
     elif num == 1 :
-        return get_workorder()
+        return mes.get_workorder()
     else:
-        return get_workorder_list(id)
+        return mes.get_workorder_list(id)
     
 class TitleLabel(QWidget):
     def __init__(self, title, style=True):
@@ -151,6 +99,7 @@ class TitleCombox(QWidget):
 
     def get_index_text(self, text, item=None):
         text_item = self.item
+        i = 0
         if item != None:
             text_item = item
         for i in range(len(self.item_json_list)):

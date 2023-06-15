@@ -36,12 +36,13 @@ def getSavePathDir():
             os.makedirs(defect_path_dir)
     return ori_path_dir, defect_path_dir
 class EdgeTpuModel():
-    def __init__(self,  weights, class_name, imgsz = [416,416], conf_thres = 0.5, iou_thres = 0.45):
+    def __init__(self,  weights, class_name, imgsz = [416,416], conf_thres = 0.5, iou_thres = 0.45, classes = None):
         self.imgsz = imgsz
         self.conf_thres = conf_thres
         self.iou_thres = iou_thres
         self.weights = weights
         self.class_name = class_name
+        self.classes = classes
         device=''
         dnn=False
         half=False
@@ -72,7 +73,7 @@ class EdgeTpuModel():
 
     def inference(self):
         pred = self.model(self.im, augment=False, visualize=False)
-        pred = non_max_suppression(pred, self.conf_thres, self.iou_thres, None, False, max_det=1000)
+        pred = non_max_suppression(pred, self.conf_thres, self.iou_thres, self.classes, False, max_det=1000)
         self.pred = pred
 
     def img_crop(self, xyxy, imc):

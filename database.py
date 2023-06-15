@@ -1,6 +1,7 @@
 import sqlite3
 import datetime
 import requests, json
+import mes_requests as mes
 def change_date_format(str_time):
 	if len(str(str_time))==2 :
 		return str(str_time)
@@ -15,18 +16,7 @@ def get_date():
     now = datetime.datetime.now()
     return f"{now.year}-{change_date_format(now.month)}-{change_date_format(now.day)}"
 
-def post_inspection(inspection_json):
-    try:
-        url = f"https://mj.d-triple.com/api/mes/v1/external/inspection"
-        
-        headers = {"Content-Type": "application/json"}
-        print(inspection_json)
-        response = requests.post(url, headers=headers, json=inspection_json)
-        print(response)
-        return response.status_code
-    except:
-        print("error")
-        return 400
+
         
         
 class SQLDatabase():
@@ -65,7 +55,7 @@ class SQLDatabase():
                 "bad_type":[{"143": int(end_ins[11].split(",")[0]), "116": int(end_ins[11].split(",")[1]), "115":int(end_ins[11].split(",")[2])}],
                 "normal_quantity":end_ins[12],       
             }
-            if post_inspection(inspection_json) == 200:
+            if mes.post_inspection(inspection_json) == 200:
                 self.update_post_table(end_ins[2], end_ins[0])
             print(inspection_json)
     def check_commit_data(self):
@@ -123,7 +113,6 @@ class SQLDatabase():
 
     def update_table(self, inspection_json, id, workorder):
         update_date = get_datetime()
-        print(inspection_json)
         bad_type = f'{inspection_json["bad_type"][0]["143"]},{inspection_json["bad_type"][0]["116"]},{inspection_json["bad_type"][0]["115"]}'
         self.cur.execute('''UPDATE detect SET start_date = ?, update_date = ?, end_date = ?, workorder_item_id = ?,
         inspection_date = ?, inspector_name = ?, workorder_quantity = ?, inspection_quatity = ?, inspection_percent = ?, 
