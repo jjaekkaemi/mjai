@@ -57,6 +57,9 @@ class EdgeTpuModel():
         self.frame = None
         self.im0 = None
         self.predict_list = []
+    def set_classes(self, del_classes):
+        self.classes.remove(del_classes)
+
     def img_processing(self, frame):
         self.frame = frame
         im = letterbox__(frame, self.imgsz[0], 32, True)[0]  # padded resize
