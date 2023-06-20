@@ -2,11 +2,11 @@ build/
 classify/
 dist/
 runs/
-segment/
-# segment/predict.py
-# segment/train.py
-# segment/tutorial.ipy-nb
-# segment/val.py
+#segment/
+segment/predict.py
+segment/train.py
+segment/tutorial.ipy-nb
+segment/val.py
 test/
 yolov5/
 # benchmarks.py

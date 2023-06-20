@@ -22,14 +22,14 @@ import requests, json
 import cv2
 from database import SQLDatabase
 
-PRODUCT_FLAG = False
+PRODUCT_FLAG = True
 MODEL_PATH = ""
 if PRODUCT_FLAG:
     sys.path.append("../../MvImport")
     from MvCameraControl_class import *
     import detect_alarm
     import mes_requests as mes
-    MODEL_PATH = "/opt/MVS/Samples/64/Python/GrabImage/yolov5_/"
+    MODEL_PATH = "/opt/MVS/Samples/64/Python/GrabImage/mjai/"
 TEST_IMG_PATH = "/home/pi/ipo_test"
 
 # [jk] add
@@ -137,10 +137,10 @@ class BoardDefectDetect(QThread):
 
         board_weights = f'{MODEL_PATH}best.pt'
         board_name = f'{MODEL_PATH}data/board.yaml'
-        defect_weights = f'{MODEL_PATH}230518_defect_yolov5s_416-int8_edgetpu.tflite'
+        defect_weights = f'{MODEL_PATH}ipo_defect_bss-int8_edgetpu.tflite'
         defect_name = f'{MODEL_PATH}data/defect.yaml'
         ipgnpe_board_weights = f'{MODEL_PATH}ipgnpe_oneboard.pt'
-        ipgnpe_defect_weights = f'{MODEL_PATH}ipgnpe_defect-int8_edgetpu.tflite'
+        ipgnpe_defect_weights = f'{MODEL_PATH}ipgnpe_defect.pt'
         type_board_weights = f'{MODEL_PATH}type_oneboard.pt'
         board_conf_thres = 0.7
 
@@ -686,7 +686,7 @@ class BoardDefectDetect(QThread):
                         cv2.imwrite(f"test/{dtime}.jpg", save_img)
                         # save_img = cv2.resize(save_img, (save_img.shape[0]//2, save_img.shape[1]//2))
                         
-                write_file = f"/media/user/exFAT/mj_test/230609/ori/{dtime}.jpg"
+                write_file = f"/media/user/exFAT/mj_test/230619/ori/{dtime}.jpg"
                 cv2.imwrite(write_file, self.select_board_model.frame)
             # print(path.stem, "board count", self.board_count, "self.defect_count", sum(self.defect_count_list), "self.defect_type_count", self.defect_type_count)
    
@@ -753,7 +753,6 @@ class BoardDefectDetect(QThread):
                 dtime = f"{dtime.year}{change_time_format(dtime.month)}{change_time_format(dtime.day)}{change_time_format(dtime.hour)}{change_time_format(dtime.minute)}{change_time_format(dtime.second)}"
                 edge_count = 0
                 defect_list = []
-                print(len(board_list))
                 
                 if ipg_center_check and self.board_check_flag == 1:
                     defect_check_count = False
@@ -833,7 +832,7 @@ class BoardDefectDetect(QThread):
                         cv2.imwrite(f"test/{dtime}.jpg", save_img)
                         # save_img = cv2.resize(save_img, (save_img.shape[0]//2, save_img.shape[1]//2))
                         
-                write_file = f"/media/user/exFAT/mj_test/230609/ori/{dtime}.jpg"
+                write_file = f"/media/user/exFAT/mj_test/230619/ori/{dtime}.jpg"
                 cv2.imwrite(write_file, self.select_board_model.frame)
             # print(path.stem, "board count", self.board_count, "self.defect_count", sum(self.defect_count_list), "self.defect_type_count", self.defect_type_count)
    

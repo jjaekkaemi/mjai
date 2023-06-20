@@ -9,6 +9,7 @@ from qt_style import TitleLabel, TitleCombox
 import sys, datetime
 from mj_detector_ob_copy import BoardDefectDetect,PRODUCT_FLAG
 from database import SQLDatabase
+import os
 SOUND_LIST = ["no_s.mp3", "no_f.mp3", "s.mp3"]
 def change_date_format(str_time):
 	if len(str(str_time))==2 :
@@ -314,7 +315,7 @@ class Main(QWidget):
 
         for file_path in defect:
             
-            self.playlist.addMedia(QMediaContent(QUrl.fromLocalFile(os.path.join("/opt/MVS/Samples/64/Python/GrabImage/yolov5_",SOUND_LIST[file_path]))))
+            self.playlist.addMedia(QMediaContent(QUrl.fromLocalFile(os.path.join("/opt/MVS/Samples/64/Python/GrabImage/mjai",SOUND_LIST[file_path]))))
         self.media_player.setPlaylist(self.playlist)
         self.media_player.play()
 
