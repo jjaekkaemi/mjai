@@ -150,7 +150,7 @@ class BoardDefectDetect(QThread):
         ipgnpe_iou_thres = 0.2
         self.board_model = EdgeTpuModel(board_weights, board_name, conf_thres=board_conf_thres)
         self.defect_model = EdgeTpuModel(defect_weights, defect_name, classes=ipo_classes, iou_thres =ipgnpe_iou_thres)
-        self.ipgnpe_board_model = EdgeTpuModel(ipgnpe_board_weights, defect_name, conf_thres=board_conf_thres)
+        self.ipgnpe_board_model = EdgeTpuModel(ipgnpe_board_weights, defect_name, conf_thres=0.5)
         self.ipgnpe_defect_model = EdgeTpuModel(ipgnpe_defect_weights, defect_name, classes=ipgnpe_classes, iou_thres =ipgnpe_iou_thres)
         self.type_board_model = EdgeTpuModel(type_board_weights, board_name, conf_thres=board_conf_thres)
         self.working = False
@@ -454,7 +454,6 @@ class BoardDefectDetect(QThread):
                 dtime = f"{dtime.year}{change_time_format(dtime.month)}{change_time_format(dtime.day)}{change_time_format(dtime.hour)}{change_time_format(dtime.minute)}{change_time_format(dtime.second)}"
                 edge_count = 0
                 defect_list = []
-                print(len(board_list))
                 # cv2.imwrite(f"/home/pi/test/{p.stem}_{board_count}.jpg", board)
                 # board_count+=1
                 if ipg_center_check and self.board_check_flag == 1:
@@ -711,8 +710,8 @@ class BoardDefectDetect(QThread):
                 
                 for *xyxy, conf, cls in reversed(det):
                     xywh = (xyxy2xywh(torch.tensor(xyxy).view(1, 4)) / gn).view(-1).tolist()
+                    
                     c = int(cls)
-
                     if c == 1:
                         if xywh[0]>0.42 and xywh[0]<0.56:
                             continue
@@ -746,7 +745,6 @@ class BoardDefectDetect(QThread):
                     ob_xywh_list = []
                     ipg_center_check = False
                     self.board_check_flag = 0
-
                 result_list = []
                 board_count = 0
                 dtime = datetime.datetime.now()
