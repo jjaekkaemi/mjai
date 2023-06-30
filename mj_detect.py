@@ -57,8 +57,8 @@ class EdgeTpuModel():
         self.predict_list = []
     def set_classes(self, del_classes):
         self.classes.remove(del_classes)
-    def add_classes(self, add_classes):
-        self.classes.append(add_classes)
+    def add_classes(self, index,add_classes):
+        self.classes.insert(index, add_classes)
 
     def img_processing(self, frame):
         self.frame = frame

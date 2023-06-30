@@ -30,7 +30,7 @@ if PRODUCT_FLAG:
     import detect_alarm
     import mes_requests as mes
     MODEL_PATH = "/opt/MVS/Samples/64/Python/GrabImage/mjai/"
-TEST_IMG_PATH = "/home/pi/ipo_test"
+TEST_IMG_PATH = "/media/pi/Samsung USB/detect/120S"
 
 # [jk] add
 stacked_widget_page = 0
@@ -262,9 +262,10 @@ class BoardDefectDetect(QThread):
                 self.select_defect_type = self.ipgnpe_defect_type
             elif self.workorder_item.get_current_text().find("TYPE") != -1:
                 self.select_board_model = self.type_board_model
-            elif self.workorder_item.get_current_text().find("120") != -1:
-                self.select_defect_model.add_classes(22)
-                self.select_defect_model.add_classes(16)
+            elif self.workorder_item.get_current_text().find("120S") != -1:
+                self.select_defect_model.add_classes(16,16)
+                self.select_defect_model.add_classes(22,22)
+                
 
             self.file_write = open("log.txt", "a")
             self.is_post = False
@@ -476,52 +477,50 @@ class BoardDefectDetect(QThread):
                                 for *xyxy, conf, cls in reversed(det):
                                     xywh_defect = (xyxy2xywh(torch.tensor(xyxy).view(1, 4)) / board_gn).view(-1).tolist()
                                     c = int(cls)
-                                    if self.workorder_item.get_current_text().find("230M") != -1 :
-                                        if c == 18 or c == 2:
-                                            if board_list_count%2 == 0:
-                                                if(xywh_defect[0]>0.16 and xywh_defect[0]<0.24):
-                                                    pass
-                                                else:
-                                                    self.file_write.write(f"{self.select_defect_model.model.names[c]}  {conf} {xywh_defect}\r\n")
-                                                    defect_check = True
-                                                    defect_check_count = True
-                                                    self.defect_type_count[self.select_defect_type[c]]+=1
+                                    if xywh_defect[2]>0.032:
+                                        if c == 1:
+                                            if xywh_defect[3]>0.044:
+                                                self.file_write.write(f"{self.select_defect_model.model.names[c]}  {conf} {xywh_defect}\r\n")
+                                                defect_check = True
+                                                defect_check_count = True
+                                                self.defect_type_count[self.select_defect_type[c]]+=1
 
 
-                                                    self.defect_type_label = self.defect_type_list[self.select_defect_type[c]]
-                                                    defect_list.append(self.select_defect_type[c])
-                                                    label = ""
-                                                    annotator.box_label(xyxy, label, color=colors(c, True))
-                                            else:
-                                                if(xywh_defect[0]>0.72 and xywh_defect[0]<0.82):
-                                                    pass
-                                                else:
-                                                    self.file_write.write(f"{self.select_defect_model.model.names[c]}  {conf} {xywh_defect}\r\n")
-                                                    defect_check = True
-                                                    defect_check_count = True
-                                                    self.defect_type_count[self.select_defect_type[c]]+=1
-
-
-                                                    self.defect_type_label = self.defect_type_list[self.select_defect_type[c]]
-                                                    defect_list.append(self.select_defect_type[c])
-                                                    label = ""
-                                                    annotator.box_label(xyxy, label, color=colors(c, True))
+                                                self.defect_type_label = self.defect_type_list[self.select_defect_type[c]]
+                                                defect_list.append(self.select_defect_type[c])
+                                                label = ""
+                                                annotator.box_label(xyxy, label, color=colors(c, True), classes=self.select_defect_type[c])
                                         else:
-                                            self.file_write.write(f"{self.select_defect_model.model.names[c]}  {conf} {xywh_defect}\r\n")
-                                            defect_check = True
-                                            defect_check_count = True
-                                            self.defect_type_count[self.select_defect_type[c]]+=1
+                                            if self.workorder_item.get_current_text().find("230M") != -1 :
+                                                if c == 18 or c == 2:
+                                                    if board_list_count%2 == 0:
+                                                        if(xywh_defect[0]>0.16 and xywh_defect[0]<0.24):
+                                                            pass
+                                                        else:
+                                                            self.file_write.write(f"{self.select_defect_model.model.names[c]}  {conf} {xywh_defect}\r\n")
+                                                            defect_check = True
+                                                            defect_check_count = True
+                                                            self.defect_type_count[self.select_defect_type[c]]+=1
 
 
-                                            self.defect_type_label = self.defect_type_list[self.select_defect_type[c]]
-                                            defect_list.append(self.select_defect_type[c])
-                                            label = ""
-                                            annotator.box_label(xyxy, label, color=colors(c, True))
-                                    elif self.workorder_item.get_current_text().find("TYPE") != -1 :
-                                        if c == 18 or c == 2:
-                                            if board_list_count%2 == 0:
-                                                if(xywh_defect[0]>0.54 and xywh_defect[0]<0.64):
-                                                    pass
+                                                            self.defect_type_label = self.defect_type_list[self.select_defect_type[c]]
+                                                            defect_list.append(self.select_defect_type[c])
+                                                            label = ""
+                                                            annotator.box_label(xyxy, label, color=colors(c, True), classes=self.select_defect_type[c])
+                                                    else:
+                                                        if(xywh_defect[0]>0.72 and xywh_defect[0]<0.82):
+                                                            pass
+                                                        else:
+                                                            self.file_write.write(f"{self.select_defect_model.model.names[c]}  {conf} {xywh_defect}\r\n")
+                                                            defect_check = True
+                                                            defect_check_count = True
+                                                            self.defect_type_count[self.select_defect_type[c]]+=1
+
+
+                                                            self.defect_type_label = self.defect_type_list[self.select_defect_type[c]]
+                                                            defect_list.append(self.select_defect_type[c])
+                                                            label = ""
+                                                            annotator.box_label(xyxy, label, color=colors(c, True), classes=self.select_defect_type[c])
                                                 else:
                                                     self.file_write.write(f"{self.select_defect_model.model.names[c]}  {conf} {xywh_defect}\r\n")
                                                     defect_check = True
@@ -532,129 +531,145 @@ class BoardDefectDetect(QThread):
                                                     self.defect_type_label = self.defect_type_list[self.select_defect_type[c]]
                                                     defect_list.append(self.select_defect_type[c])
                                                     label = ""
-                                                    annotator.box_label(xyxy, label, color=colors(c, True))
+                                                    annotator.box_label(xyxy, label, color=colors(c, True), classes=self.select_defect_type[c])
+                                            elif self.workorder_item.get_current_text().find("TYPE") != -1 :
+                                                if c == 18 or c == 2:
+                                                    if board_list_count%2 == 0:
+                                                        if(xywh_defect[0]>0.54 and xywh_defect[0]<0.64):
+                                                            pass
+                                                        else:
+                                                            self.file_write.write(f"{self.select_defect_model.model.names[c]}  {conf} {xywh_defect}\r\n")
+                                                            defect_check = True
+                                                            defect_check_count = True
+                                                            self.defect_type_count[self.select_defect_type[c]]+=1
+
+
+                                                            self.defect_type_label = self.defect_type_list[self.select_defect_type[c]]
+                                                            defect_list.append(self.select_defect_type[c])
+                                                            label = ""
+                                                            annotator.box_label(xyxy, label, color=colors(c, True), classes=self.select_defect_type[c])
+                                                    else:
+                                                        if(xywh_defect[0]>0.34 and xywh_defect[0]<0.43):
+                                                            pass
+                                                        else:
+                                                            self.file_write.write(f"{self.select_defect_model.model.names[c]}  {conf} {xywh_defect}\r\n")
+                                                            defect_check = True
+                                                            defect_check_count = True
+                                                            self.defect_type_count[self.select_defect_type[c]]+=1
+
+
+                                                            self.defect_type_label = self.defect_type_list[self.select_defect_type[c]]
+                                                            defect_list.append(self.select_defect_type[c])
+                                                            label = ""
+                                                            annotator.box_label(xyxy, label, color=colors(c, True), classes=self.select_defect_type[c])
+                                                else:
+                                                    self.file_write.write(f"{self.select_defect_model.model.names[c]}  {conf} {xywh_defect}\r\n")
+                                                    defect_check = True
+                                                    defect_check_count = True
+                                                    self.defect_type_count[self.select_defect_type[c]]+=1
+
+
+                                                    self.defect_type_label = self.defect_type_list[self.select_defect_type[c]]
+                                                    defect_list.append(self.select_defect_type[c])
+                                                    label = ""
+                                                    annotator.box_label(xyxy, label, color=colors(c, True), classes=self.select_defect_type[c])
+                                            elif self.workorder_item.get_current_text().find("230S-") != -1 :
+                                                if c == 18 or c == 2:
+                                                    if board_list_count%2 == 0:
+                                                        if(xywh_defect[0]>0.60 and xywh_defect[0]<0.70):
+                                                            pass
+                                                        else:
+                                                            self.file_write.write(f"{self.select_defect_model.model.names[c]}  {conf} {xywh_defect}\r\n")
+                                                            defect_check = True
+                                                            defect_check_count = True
+                                                            self.defect_type_count[self.select_defect_type[c]]+=1
+
+
+                                                            self.defect_type_label = self.defect_type_list[self.select_defect_type[c]]
+                                                            defect_list.append(self.select_defect_type[c])
+                                                            label = ""
+                                                            annotator.box_label(xyxy, label, color=colors(c, True), classes=self.select_defect_type[c])
+                                                    else:
+                                                        if(xywh_defect[0]>0.30 and xywh_defect[0]<0.40):
+                                                            pass
+                                                        else:
+                                                            self.file_write.write(f"{self.select_defect_model.model.names[c]}  {conf} {xywh_defect}\r\n")
+                                                            defect_check = True
+                                                            defect_check_count = True
+                                                            self.defect_type_count[self.select_defect_type[c]]+=1
+
+
+                                                            self.defect_type_label = self.defect_type_list[self.select_defect_type[c]]
+                                                            defect_list.append(self.select_defect_type[c])
+                                                            label = ""
+                                                            annotator.box_label(xyxy, label, color=colors(c, True), classes=self.select_defect_type[c])
+                                                            
+                                                else:
+                                                    self.file_write.write(f"{self.select_defect_model.model.names[c]}  {conf} {xywh_defect}\r\n")
+                                                    defect_check = True
+                                                    defect_check_count = True
+                                                    self.defect_type_count[self.select_defect_type[c]]+=1
+
+
+                                                    self.defect_type_label = self.defect_type_list[self.select_defect_type[c]]
+                                                    defect_list.append(self.select_defect_type[c])
+                                                    label = ""
+                                                    annotator.box_label(xyxy, label, color=colors(c, True), classes=self.select_defect_type[c])
+
+                                            elif self.workorder_item.get_current_text().find("120S") != -1 :
+                                                if c == 18 or c == 2:
+                                                    if board_list_count%2 == 0:
+                                                        if(xywh_defect[0]>0.72 and xywh_defect[0]<0.91):
+                                                            pass
+                                                        else:
+                                                            self.file_write.write(f"{self.select_defect_model.model.names[c]}  {conf} {xywh_defect}\r\n")
+                                                            defect_check = True
+                                                            defect_check_count = True
+                                                            self.defect_type_count[self.select_defect_type[c]]+=1
+
+
+                                                            self.defect_type_label = self.defect_type_list[self.select_defect_type[c]]
+                                                            defect_list.append(self.select_defect_type[c])
+                                                            label = ""
+                                                            annotator.box_label(xyxy, label, color=colors(c, True), classes=self.select_defect_type[c])
+                                                    else:
+                                                        if(xywh_defect[0]>0.08 and xywh_defect[0]<0.25):
+                                                            pass
+                                                        else:
+                                                            self.file_write.write(f"{self.select_defect_model.model.names[c]}  {conf} {xywh_defect}\r\n")
+                                                            defect_check = True
+                                                            defect_check_count = True
+                                                            self.defect_type_count[self.select_defect_type[c]]+=1
+
+
+                                                            self.defect_type_label = self.defect_type_list[self.select_defect_type[c]]
+                                                            defect_list.append(self.select_defect_type[c])
+                                                            label = ""
+                                                            annotator.box_label(xyxy, label, color=colors(c, True), classes=self.select_defect_type[c])
+                                                else:
+                                                    self.file_write.write(f"{self.select_defect_model.model.names[c]}  {conf} {xywh_defect}\r\n")
+                                                    defect_check = True
+                                                    defect_check_count = True
+                                                    self.defect_type_count[self.select_defect_type[c]]+=1
+
+
+                                                    self.defect_type_label = self.defect_type_list[self.select_defect_type[c]]
+                                                    defect_list.append(self.select_defect_type[c])
+                                                    label = ""
+                                                    annotator.box_label(xyxy, label, color=colors(c, True), classes=self.select_defect_type[c])
                                             else:
-                                                if(xywh_defect[0]>0.34 and xywh_defect[0]<0.43):
-                                                    pass
-                                                else:
-                                                    self.file_write.write(f"{self.select_defect_model.model.names[c]}  {conf} {xywh_defect}\r\n")
-                                                    defect_check = True
-                                                    defect_check_count = True
-                                                    self.defect_type_count[self.select_defect_type[c]]+=1
 
+                                                self.file_write.write(f"{self.select_defect_model.model.names[c]}  {conf} {xywh_defect}\r\n")
+                                                defect_check = True
+                                                defect_check_count = True
+                                                self.defect_type_count[self.select_defect_type[c]]+=1
 
-                                                    self.defect_type_label = self.defect_type_list[self.select_defect_type[c]]
-                                                    defect_list.append(self.select_defect_type[c])
-                                                    label = ""
-                                                    annotator.box_label(xyxy, label, color=colors(c, True))
-                                        else:
-                                            self.file_write.write(f"{self.select_defect_model.model.names[c]}  {conf} {xywh_defect}\r\n")
-                                            defect_check = True
-                                            defect_check_count = True
-                                            self.defect_type_count[self.select_defect_type[c]]+=1
-
-
-                                            self.defect_type_label = self.defect_type_list[self.select_defect_type[c]]
-                                            defect_list.append(self.select_defect_type[c])
-                                            label = ""
-                                            annotator.box_label(xyxy, label, color=colors(c, True))
-                                    elif self.workorder_item.get_current_text().find("230S-") != -1 :
-                                        if c == 18 or c == 2:
-                                            if board_list_count%2 == 0:
-                                                if(xywh_defect[0]>0.60 and xywh_defect[0]<0.70):
-                                                    pass
-                                                else:
-                                                    self.file_write.write(f"{self.select_defect_model.model.names[c]}  {conf} {xywh_defect}\r\n")
-                                                    defect_check = True
-                                                    defect_check_count = True
-                                                    self.defect_type_count[self.select_defect_type[c]]+=1
-
-
-                                                    self.defect_type_label = self.defect_type_list[self.select_defect_type[c]]
-                                                    defect_list.append(self.select_defect_type[c])
-                                                    label = ""
-                                                    annotator.box_label(xyxy, label, color=colors(c, True))
-                                            else:
-                                                if(xywh_defect[0]>0.30 and xywh_defect[0]<0.40):
-                                                    pass
-                                                else:
-                                                    self.file_write.write(f"{self.select_defect_model.model.names[c]}  {conf} {xywh_defect}\r\n")
-                                                    defect_check = True
-                                                    defect_check_count = True
-                                                    self.defect_type_count[self.select_defect_type[c]]+=1
-
-
-                                                    self.defect_type_label = self.defect_type_list[self.select_defect_type[c]]
-                                                    defect_list.append(self.select_defect_type[c])
-                                                    label = ""
-                                                    annotator.box_label(xyxy, label, color=colors(c, True))
-                                                    
-                                        else:
-                                            self.file_write.write(f"{self.select_defect_model.model.names[c]}  {conf} {xywh_defect}\r\n")
-                                            defect_check = True
-                                            defect_check_count = True
-                                            self.defect_type_count[self.select_defect_type[c]]+=1
-
-
-                                            self.defect_type_label = self.defect_type_list[self.select_defect_type[c]]
-                                            defect_list.append(self.select_defect_type[c])
-                                            label = ""
-                                            annotator.box_label(xyxy, label, color=colors(c, True))
-
-                                    elif self.workorder_item.get_current_text().find("120S") != -1 :
-                                        if c == 18 or c == 2:
-                                            if board_list_count%2 == 0:
-                                                if(xywh_defect[0]>0.72 and xywh_defect[0]<0.91):
-                                                    pass
-                                                else:
-                                                    self.file_write.write(f"{self.select_defect_model.model.names[c]}  {conf} {xywh_defect}\r\n")
-                                                    defect_check = True
-                                                    defect_check_count = True
-                                                    self.defect_type_count[self.select_defect_type[c]]+=1
-
-
-                                                    self.defect_type_label = self.defect_type_list[self.select_defect_type[c]]
-                                                    defect_list.append(self.select_defect_type[c])
-                                                    label = ""
-                                                    annotator.box_label(xyxy, label, color=colors(c, True))
-                                            else:
-                                                if(xywh_defect[0]>0.08 and xywh_defect[0]<0.25):
-                                                    pass
-                                                else:
-                                                    self.file_write.write(f"{self.select_defect_model.model.names[c]}  {conf} {xywh_defect}\r\n")
-                                                    defect_check = True
-                                                    defect_check_count = True
-                                                    self.defect_type_count[self.select_defect_type[c]]+=1
-
-
-                                                    self.defect_type_label = self.defect_type_list[self.select_defect_type[c]]
-                                                    defect_list.append(self.select_defect_type[c])
-                                                    label = ""
-                                                    annotator.box_label(xyxy, label, color=colors(c, True))
-                                        else:
-                                            self.file_write.write(f"{self.select_defect_model.model.names[c]}  {conf} {xywh_defect}\r\n")
-                                            defect_check = True
-                                            defect_check_count = True
-                                            self.defect_type_count[self.select_defect_type[c]]+=1
-
-
-                                            self.defect_type_label = self.defect_type_list[self.select_defect_type[c]]
-                                            defect_list.append(self.select_defect_type[c])
-                                            label = ""
-                                            annotator.box_label(xyxy, label, color=colors(c, True))
-                                    else:
-
-                                        self.file_write.write(f"{self.select_defect_model.model.names[c]}  {conf} {xywh_defect}\r\n")
-                                        defect_check = True
-                                        defect_check_count = True
-                                        self.defect_type_count[self.select_defect_type[c]]+=1
-
-                                                        
-  
-                                        self.defect_type_label = self.defect_type_list[self.select_defect_type[c]]
-                                        defect_list.append(self.select_defect_type[c])
-                                        label = ""
-                                        annotator.box_label(xyxy, label, color=colors(c, True))
+                                                                
+        
+                                                self.defect_type_label = self.defect_type_list[self.select_defect_type[c]]
+                                                defect_list.append(self.select_defect_type[c])
+                                                label = ""
+                                                annotator.box_label(xyxy, label, color=colors(c, True), classes=self.select_defect_type[c])
 
 
 
@@ -785,7 +800,7 @@ class BoardDefectDetect(QThread):
                                     self.defect_type_label = self.defect_type_list[self.select_defect_type[c]]
                                     defect_list.append(self.select_defect_type[c])
                                     label = ""
-                                    annotator.box_label(xyxy, label, color=colors(c, True))
+                                    annotator.box_label(xyxy, label, color=colors(c, True), classes=self.select_defect_type[c])
 
 
 
