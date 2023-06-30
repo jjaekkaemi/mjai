@@ -4,7 +4,7 @@ from PySide2.QtGui import *
 
 from qt_style import TitleLabel, TitleCombox
 
-from mj_detect import EdgeTpuModel
+from mj_detect import EdgeTpuModel, getSavePathDir
 
 import argparse, os, sys, torch, time, datetime
 from pathlib import Path
@@ -137,14 +137,14 @@ class BoardDefectDetect(QThread):
 
         board_weights = f'{MODEL_PATH}best.pt'
         board_name = f'{MODEL_PATH}data/board.yaml'
-        defect_weights = f'{MODEL_PATH}ipo_defect_bss-int8_edgetpu.tflite'
+        defect_weights = f'{MODEL_PATH}230629_ipo_defect-int8_edgetpu.tflite'
         defect_name = f'{MODEL_PATH}data/defect.yaml'
         ipgnpe_board_weights = f'{MODEL_PATH}ipgnpe_oneboard.pt'
         ipgnpe_defect_weights = f'{MODEL_PATH}ipgnpe_defect.pt'
         type_board_weights = f'{MODEL_PATH}type_oneboard.pt'
         board_conf_thres = 0.7
 
-        ipo_classes = [0,1,2,3,4,5,6,7,8,9,10,11,12,13,15,18,20,21,22]
+        ipo_classes = [0,1,2,3,4,5,6,7,8,9,10,11,12,13,15, 18,20,21]
 
         ipgnpe_classes = [0,1,3,4,5,7,8]
         ipgnpe_iou_thres = 0.2
@@ -165,7 +165,7 @@ class BoardDefectDetect(QThread):
         self.defect_type_label = ""
 
 
-        self.defect_type = [0, 0, 0, 0, 0, 0, 0,1, 1,0, 2,1,0, 1, 3, 0, 3, 3, 1, 3, 1, 2, 1]
+        self.defect_type = [0, 0, 0, 0, 0, 0, 0,1, 1,0, 2,0,0, 1, 3, 0, 0, 3, 1, 3, 1, 2, 1]
         self.ipgnpe_defect_type = [0,2,3,0,0,1,3,0,1,3]
         self.defect_type_count = [0,0,0]
 
@@ -199,6 +199,7 @@ class BoardDefectDetect(QThread):
 
         # [jk] add
         self.camera_working = False
+        self.ori_path_dir, self.defect_path_dir = getSavePathDir()
     def today_inspection_change(self, today_inspection):
          self.today_inspection = today_inspection
     
@@ -259,13 +260,11 @@ class BoardDefectDetect(QThread):
                 self.select_board_model = self.ipgnpe_board_model
                 self.select_defect_model = self.ipgnpe_defect_model
                 self.select_defect_type = self.ipgnpe_defect_type
-            elif self.workorder_item.get_current_text().find("230") != -1 :
-                if self.workorder_item.get_current_text().find("TYPE") != -1:
-                    self.select_board_model = self.type_board_model
-                else:
-                    if 22 in self.select_defect_model.classes:
-                        self.select_defect_model.set_classes(22)
-
+            elif self.workorder_item.get_current_text().find("TYPE") != -1:
+                self.select_board_model = self.type_board_model
+            elif self.workorder_item.get_current_text().find("120") != -1:
+                self.select_defect_model.add_classes(22)
+                self.select_defect_model.add_classes(16)
 
             self.file_write = open("log.txt", "a")
             self.is_post = False
@@ -478,7 +477,7 @@ class BoardDefectDetect(QThread):
                                     xywh_defect = (xyxy2xywh(torch.tensor(xyxy).view(1, 4)) / board_gn).view(-1).tolist()
                                     c = int(cls)
                                     if self.workorder_item.get_current_text().find("230M") != -1 :
-                                        if c == 18:
+                                        if c == 18 or c == 2:
                                             if board_list_count%2 == 0:
                                                 if(xywh_defect[0]>0.16 and xywh_defect[0]<0.24):
                                                     pass
@@ -519,7 +518,7 @@ class BoardDefectDetect(QThread):
                                             label = ""
                                             annotator.box_label(xyxy, label, color=colors(c, True))
                                     elif self.workorder_item.get_current_text().find("TYPE") != -1 :
-                                        if c == 18:
+                                        if c == 18 or c == 2:
                                             if board_list_count%2 == 0:
                                                 if(xywh_defect[0]>0.54 and xywh_defect[0]<0.64):
                                                     pass
@@ -559,8 +558,8 @@ class BoardDefectDetect(QThread):
                                             defect_list.append(self.select_defect_type[c])
                                             label = ""
                                             annotator.box_label(xyxy, label, color=colors(c, True))
-                                    elif self.workorder_item.get_current_text().find("230S") != -1 :
-                                        if c == 18:
+                                    elif self.workorder_item.get_current_text().find("230S-") != -1 :
+                                        if c == 18 or c == 2:
                                             if board_list_count%2 == 0:
                                                 if(xywh_defect[0]>0.60 and xywh_defect[0]<0.70):
                                                     pass
@@ -603,7 +602,7 @@ class BoardDefectDetect(QThread):
                                             annotator.box_label(xyxy, label, color=colors(c, True))
 
                                     elif self.workorder_item.get_current_text().find("120S") != -1 :
-                                        if c == 18:
+                                        if c == 18 or c == 2:
                                             if board_list_count%2 == 0:
                                                 if(xywh_defect[0]>0.72 and xywh_defect[0]<0.91):
                                                     pass
@@ -681,12 +680,13 @@ class BoardDefectDetect(QThread):
                         if PRODUCT_FLAG :
                             detect_alarm.buzzer_on()
                             self.sound_data.emit(defect_list)
-
-                        cv2.imwrite(f"test/{dtime}.jpg", save_img)
+                        cv2.imwrite(os.path.join(self.defect_path_dir, dtime+".jpg"), save_img)
+                        # cv2.imwrite(f"test/{dtime}.jpg", save_img)
                         # save_img = cv2.resize(save_img, (save_img.shape[0]//2, save_img.shape[1]//2))
                         
                 write_file = f"/media/user/exFAT/mj_test/230619/ori/{dtime}.jpg"
-                cv2.imwrite(write_file, self.select_board_model.frame)
+
+                cv2.imwrite(os.path.join(self.ori_path_dir, dtime+".jpg"), self.select_board_model.frame)
             # print(path.stem, "board count", self.board_count, "self.defect_count", sum(self.defect_count_list), "self.defect_type_count", self.defect_type_count)
    
         self.update_data.emit(self.board_count, self.defect_count, self.defect_type_label)
@@ -774,33 +774,18 @@ class BoardDefectDetect(QThread):
                                 for *xyxy, conf, cls in reversed(det):
                                     xywh_defect = (xyxy2xywh(torch.tensor(xyxy).view(1, 4)) / board_gn).view(-1).tolist()
                                     c = int(cls)
-                                    if self.workorder_item.get_current_text().find("230M") != -1 and c== 22 :
-                                        if (xywh_defect[0]>=0.19 and xywh_defect[0]<=0.24 and xywh_defect[1]>=0.02 and xywh_defect[1]<=0.15) or (xywh_defect[0]>=0.76 and xywh_defect[0]<=0.82 and xywh_defect[1]>=0.84 and xywh_defect[1]<=0.91) :
-                                            pass
-                                        else:
-                                            self.file_write.write(f"{self.select_defect_model.model.names[c]}  {conf} {xywh_defect}\r\n")
-                                            defect_check = True
-                                            defect_check_count = True
-                                            self.defect_type_count[self.select_defect_type[c]]+=1
 
-
-                                            self.defect_type_label = self.defect_type_list[self.select_defect_type[c]]
-                                            defect_list.append(self.select_defect_type[c])
-                                            label = ""
-                                            annotator.box_label(xyxy, label, color=colors(c, True))
-                                    else:
-
-                                        self.file_write.write(f"{self.select_defect_model.model.names[c]}  {conf} {xywh_defect}\r\n")
-                                        defect_check = True
-                                        defect_check_count = True
-                                        self.defect_type_count[self.select_defect_type[c]]+=1
+                                    self.file_write.write(f"{self.select_defect_model.model.names[c]}  {conf} {xywh_defect}\r\n")
+                                    defect_check = True
+                                    defect_check_count = True
+                                    self.defect_type_count[self.select_defect_type[c]]+=1
 
                                                         
   
-                                        self.defect_type_label = self.defect_type_list[self.select_defect_type[c]]
-                                        defect_list.append(self.select_defect_type[c])
-                                        label = ""
-                                        annotator.box_label(xyxy, label, color=colors(c, True))
+                                    self.defect_type_label = self.defect_type_list[self.select_defect_type[c]]
+                                    defect_list.append(self.select_defect_type[c])
+                                    label = ""
+                                    annotator.box_label(xyxy, label, color=colors(c, True))
 
 
 
@@ -827,11 +812,12 @@ class BoardDefectDetect(QThread):
                             detect_alarm.buzzer_on()
                             self.sound_data.emit(defect_list)
 
-                        cv2.imwrite(f"test/{dtime}.jpg", save_img)
+                        cv2.imwrite(os.path.join(self.defect_path_dir, dtime+".jpg"), save_img)
+                        # cv2.imwrite(f"test/{dtime}.jpg", save_img)
                         # save_img = cv2.resize(save_img, (save_img.shape[0]//2, save_img.shape[1]//2))
                         
                 write_file = f"/media/user/exFAT/mj_test/230619/ori/{dtime}.jpg"
-                cv2.imwrite(write_file, self.select_board_model.frame)
+                cv2.imwrite(os.path.join(self.ori_path_dir, dtime+".jpg"), self.select_board_model.frame)
             # print(path.stem, "board count", self.board_count, "self.defect_count", sum(self.defect_count_list), "self.defect_type_count", self.defect_type_count)
    
         self.update_data.emit(self.board_count, self.defect_count, self.defect_type_label)

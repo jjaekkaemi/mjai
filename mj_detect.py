@@ -17,24 +17,22 @@ def change_time_format(str_time):
 	else :
 		return '0'+str(str_time)
 def getSavePathDir():
-    ssd_path = "/media/dtriple/exFAT/mj_test"
-    ori_path = "/home/dtriple/test/detect"
+    ssd_path = "/media/user/exFAT/mj_test"
     now_datetime = datetime.datetime.now()
     ssd_datetime = f"{now_datetime.year}{change_time_format(now_datetime.month)}{change_time_format(now_datetime.day)}"
     save_path_dir = os.path.join(ssd_path, ssd_datetime)
     ori_path_dir = ""
     defect_path_dir = ""
-    if os.path.exists(ssd_path)==False :
-        save_path_dir = os.path.join(ori_path, ssd_datetime)
-       
+
     if os.path.exists(save_path_dir) == False:
         os.makedirs(save_path_dir)
-        ori_path_dir = os.path.join(save_path_dir, "ori")
-        defect_path_dir = os.path.join(save_path_dir, "defect")
-        if os.path.exists(ori_path_dir) == False:
-            os.makedirs(ori_path_dir)
-            os.makedirs(defect_path_dir)
+    ori_path_dir = os.path.join(save_path_dir, "ori")
+    defect_path_dir = os.path.join(save_path_dir, "defect")
+    if os.path.exists(ori_path_dir) == False:
+        os.makedirs(ori_path_dir)
+        os.makedirs(defect_path_dir)
     return ori_path_dir, defect_path_dir
+
 class EdgeTpuModel():
     def __init__(self,  weights, class_name, imgsz = [416,416], conf_thres = 0.5, iou_thres = 0.45, classes = None):
         self.imgsz = imgsz
@@ -59,6 +57,8 @@ class EdgeTpuModel():
         self.predict_list = []
     def set_classes(self, del_classes):
         self.classes.remove(del_classes)
+    def add_classes(self, add_classes):
+        self.classes.append(add_classes)
 
     def img_processing(self, frame):
         self.frame = frame
