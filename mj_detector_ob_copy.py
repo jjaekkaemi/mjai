@@ -423,7 +423,7 @@ class BoardDefectDetect(QThread):
                 for *xyxy, conf, cls in reversed(det):
                     xywh = (xyxy2xywh(torch.tensor(xyxy).view(1, 4)) / gn).view(-1).tolist()
 
-                    if (xywh[2]>0.23 and xywh[3]>0.25) and (xywh[0]>0.34 and xywh[0]<0.70):
+                    if (xywh[2]>0.23 and xywh[3]>0.25) and (xywh[0]>0.30 and xywh[0]<0.66):
 
                         xywh.append(xywh_count)
                         xywh_count += 1
