@@ -167,7 +167,7 @@ class BoardDefectDetect(QThread):
 
 
         self.defect_type = [0, 0, 0, 0, 0, 0, 0,1, 1,0, 2,0,0, 1, 3, 0, 0, 3, 1, 3, 1, 2, 1]
-        self.ipgnpe_defect_type = [0,2,3,0,0,1,3,0,1,3]
+        self.ipgnpe_defect_type = [0,2,3,0,0,1,3,0,1,3,3]
         self.defect_type_count = [0,0,0]
 
         self.defect_type_list = ["미납","리드미삽", "쇼트", ""]
