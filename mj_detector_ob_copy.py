@@ -36,6 +36,7 @@ TEST_IMG_PATH = "/media/pi/Samsung USB/detect/120S"
 stacked_widget_page = 0
 
 IPO_POS_CHECK = [0.34, 0.51, 0.44, 0.68]
+IPG_NPE_CHECK = [0.20, 0.79]
 LIST_LENTH = 2
 IPGNPE_LIST_LENTH = 5
 RESULT_SIZE = [992, 1088, 928]
@@ -309,67 +310,7 @@ class BoardDefectDetect(QThread):
                             
                     else:
                         break
-    
-    # def run(self):
-    #     # [jk] add
-    #     if stacked_widget_page == 2:
-    #             self.camera_working=True
-    #             if PRODUCT_FLAG :
-    #                 while self.camera_working:
-    #                     ret = self.cam.MV_CC_GetOneFrameTimeout(self.data_buf, self.nPayloadSize, self.stFrameInfo, 1000)
-    #                     if ret == 0:
-    #                             data = np.frombuffer(self.data_buf, count=int(self.stFrameInfo.nFrameLen), dtype=np.uint8)
-    #                             frame = image_control(data=data, stFrameInfo=self.stFrameInfo)
-    #                             self.camera_view_connect.emit(frame)
-    #                     else:
-    #                             print("no data")
-    #                     self.sleep(0.01)
-    #             else:
-    #                 dataset = LoadImages(TEST_IMG_PATH, img_size=[416,416], stride=32, auto=self.ipgnpe_board_model.model.pt, vid_stride=1)
-    #                 for path, im, im0s, vid_cap, s in dataset:
-    #                     if self.camera_working:
-                            
-    #                         self.camera_view_connect.emit(im0s)
-                                
-    #                     else:
-    #                         break
 
-    #     else:
-    #         self.file_write = open("log.txt", "a")
-    #         self.is_post = False
-    #         self.working=True
-    #         self.defect_show_list = [] 
-    #         if PRODUCT_FLAG:  
-    #             while self.working:
-    #                 ret = self.cam.MV_CC_GetOneFrameTimeout(self.data_buf, self.nPayloadSize, self.stFrameInfo, 1000)
-    #                 if ret == 0:
-    #                         # print ("get one frame: Width[%d], Height[%d], PixelType[0x%d], nFrameNum[%d]"  % (stFrameInfo.nWidth, stFrameInfo.nHeight, stFrameInfo.enPixelType,stFrameInfo.nFrameNum))
-    #                         data = np.frombuffer(self.data_buf, count=int(self.stFrameInfo.nFrameLen), dtype=np.uint8)
-    #                         frame = image_control(data=data, stFrameInfo=self.stFrameInfo)
-    #                         self.board_model.img_processing(frame)
-    #                         self.board_model.inference()
-    #                         self.board_detect()
-    #                         # predict_list = self.board_model.process_predictions(board_pred, frame, im)
-
-                                    
-    #                 else:
-    #                     print("no data")
-                    
-    #                 self.sleep(0.01)
-    #         else:
-    #             dataset = LoadImages(TEST_IMG_PATH, img_size=[416,416], stride=32, auto=self.ipgnpe_board_model.model.pt, vid_stride=1)
-    #             for path, im, im0s, vid_cap, s in dataset:
-    #                 if self.working:
-    #                     start = time.time()
-    #                     self.ipgnpe_board_model.img_processing(im0s)
-    #                     self.ipgnpe_board_model.inference()
-    #                     self.board_detect(path)
-    #                     end = time.time()
-    #                     print(f"detect time : {end-start}")
-                            
-    #                 else:
-    #                     break
-       
     def board_check(self, ob_xyxy_list, ob_xywh_list):
         if len(ob_xyxy_list)>0 and len(ob_xyxy_list)%2 == 0 :
             sorted_data = sorted(ob_xywh_list, key = lambda x: x[1])
@@ -729,7 +670,7 @@ class BoardDefectDetect(QThread):
                     c = int(cls)
 
                     if c == 0 :
-                        if xywh[0]>0.20 and xywh[0]<0.79:
+                        if xywh[0]>IPG_NPE_CHECK[0] and xywh[0]<IPG_NPE_CHECK[1]:
                             xywh.append(xywh_count)
                             xywh_count += 1
                             crop_img=self.select_board_model.img_crop(xyxy, imc) ###
