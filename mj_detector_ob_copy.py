@@ -36,7 +36,7 @@ TEST_IMG_PATH = "/media/pi/Samsung USB/detect/120S"
 stacked_widget_page = 0
 
 IPO_POS_CHECK = [0.34, 0.51, 0.44, 0.68]
-IPG_NPE_CHECK = [0.20, 0.79]
+IPG_NPE_CHECK = [0.17, 0.79]
 LIST_LENTH = 2
 IPGNPE_LIST_LENTH = 5
 RESULT_SIZE = [992, 1088, 928]
