@@ -19,7 +19,7 @@ def change_time_format(str_time):
 def getSavePathDir():
     ssd_path = "/media/user/exFAT/mj_test"
     now_datetime = datetime.datetime.now()
-    ssd_datetime = f"{now_datetime.year}{change_time_format(now_datetime.month)}{change_time_format(now_datetime.day)}"
+    ssd_datetime = f"{str(now_datetime.year)[2:4]}{change_time_format(now_datetime.month)}{change_time_format(now_datetime.day)}"
     save_path_dir = os.path.join(ssd_path, ssd_datetime)
     ori_path_dir = ""
     defect_path_dir = ""

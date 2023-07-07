@@ -35,7 +35,7 @@ TEST_IMG_PATH = "/media/pi/Samsung USB/detect/120S"
 # [jk] add
 stacked_widget_page = 0
 
-IPO_POS_CHECK = [0.34, 0.55, 0.45, 0.70]
+IPO_POS_CHECK = [0.34, 0.51, 0.44, 0.68]
 LIST_LENTH = 2
 IPGNPE_LIST_LENTH = 5
 RESULT_SIZE = [992, 1088, 928]
@@ -137,16 +137,16 @@ class BoardDefectDetect(QThread):
 
         board_weights = f'{MODEL_PATH}best.pt'
         board_name = f'{MODEL_PATH}data/board.yaml'
-        defect_weights = f'{MODEL_PATH}230629_ipo_defect-int8_edgetpu.tflite'
+        defect_weights = f'{MODEL_PATH}230706_ipo_defect-int8_edgetpu.tflite'
         defect_name = f'{MODEL_PATH}data/defect.yaml'
         ipgnpe_board_weights = f'{MODEL_PATH}ipgnpe_oneboard.pt'
-        ipgnpe_defect_weights = f'{MODEL_PATH}ipgnpe_defect.pt'
+        ipgnpe_defect_weights = f'{MODEL_PATH}230706_ipgnpe_defect.pt'
         type_board_weights = f'{MODEL_PATH}type_oneboard.pt'
         board_conf_thres = 0.7
 
         ipo_classes = [0,1,2,3,4,5,6,7,8,9,10,11,12,13,15, 18,20,21]
 
-        ipgnpe_classes = [0,1,3,4,5,7,8]
+        ipgnpe_classes = [0,1,4,5,7,8]
         ipgnpe_iou_thres = 0.2
         self.board_model = EdgeTpuModel(board_weights, board_name, conf_thres=board_conf_thres)
         self.defect_model = EdgeTpuModel(defect_weights, defect_name, classes=ipo_classes, iou_thres =ipgnpe_iou_thres)
@@ -423,7 +423,7 @@ class BoardDefectDetect(QThread):
                 for *xyxy, conf, cls in reversed(det):
                     xywh = (xyxy2xywh(torch.tensor(xyxy).view(1, 4)) / gn).view(-1).tolist()
 
-                    if (xywh[2]>0.23 and xywh[3]>0.25) and (xywh[0]>0.30 and xywh[0]<0.66):
+                    if (xywh[2]>0.23 and xywh[3]>0.25) and (xywh[0]>0.34 and xywh[0]<0.68):
 
                         xywh.append(xywh_count)
                         xywh_count += 1
@@ -727,24 +727,21 @@ class BoardDefectDetect(QThread):
                     xywh = (xyxy2xywh(torch.tensor(xyxy).view(1, 4)) / gn).view(-1).tolist()
                     
                     c = int(cls)
-                    if c == 1:
-                        if xywh[0]>0.42 and xywh[0]<0.56:
-                            continue
-                        else:
-                            xywh_count = 0
-                            ob_xyxy_list = []
-                            ob_xywh_list = []
-                            break
 
-                    elif c == 0 :
-                        xywh.append(xywh_count)
-                        xywh_count += 1
-                        crop_img=self.select_board_model.img_crop(xyxy, imc) ###
+                    if c == 0 :
+                        if xywh[0]>0.20 and xywh[0]<0.79:
+                            xywh.append(xywh_count)
+                            xywh_count += 1
+                            crop_img=self.select_board_model.img_crop(xyxy, imc) ###
 
 
-                        ob_xyxy_list.append(crop_img)
-                        ob_xywh_list.append(xywh)
+                            ob_xyxy_list.append(crop_img)
+                            ob_xywh_list.append(xywh)
                     
+                if len(ob_xyxy_list)!=25:
+                    xywh_count = 0
+                    ob_xyxy_list = []
+                    ob_xywh_list = []
                 
                 board_list = self.ipgnpe_board_check(ob_xyxy_list, ob_xywh_list)
                 if board_list :
