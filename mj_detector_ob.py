@@ -35,7 +35,7 @@ TEST_IMG_PATH = "/media/pi/Samsung USB/detect/120S"
 # [jk] add
 stacked_widget_page = 0
 
-IPO_POS_CHECK = [0.34, 0.51, 0.44, 0.68]
+IPO_POS_CHECK = [0.34, 0.51, 0.44, 0.68, 0.23, 0.25]
 IPG_NPE_CHECK = [0.20, 0.79]
 LIST_LENTH = 2
 IPGNPE_LIST_LENTH = 5
@@ -113,13 +113,6 @@ def initMvCamera():
         sys.exit()
     return cam, data_buf, stFrameInfo, nPayloadSize
 
-def change_number(num):
-    if len(str(num))>3:
-        return str(num)[:-3]+","+str(num)[-3:]
-    return str(num)
-
-def change_text(str_num):
-    return int(str_num.replace(",", ""))
 class BoardDefectDetect(QThread):
     sound_data = Signal(list)
     # [jk] add
@@ -161,7 +154,7 @@ class BoardDefectDetect(QThread):
 
         self.defect_count_list = [0,0,0,0,0,0]
         self.defect_alarm = False
-        self.board_count = 0 
+        self.total_board_count = 0 
         self.defect_count = 0 
         self.defect_type_label = ""
 
@@ -201,14 +194,15 @@ class BoardDefectDetect(QThread):
         # [jk] add
         self.camera_working = False
         self.ori_path_dir, self.defect_path_dir = getSavePathDir()
+
     def today_inspection_change(self, today_inspection):
          self.today_inspection = today_inspection
     
     def stop_camera(self):
-            if self.camera_working :
-                    self.camera_working = False
-                    self.quit()
-                    self.wait(500)
+        if self.camera_working :
+            self.camera_working = False
+            self.quit()
+            self.wait(500)
     def stop(self, inspection_json, work_stop, end_date=None,is_commit=False):
         
         if self.working:
@@ -216,23 +210,18 @@ class BoardDefectDetect(QThread):
             self.quit()
             self.wait(500)
             self.file_write.close()
+            is_db_update = True
             if work_stop:
                 if PRODUCT_FLAG:
-                    if mes.post_inspection(inspection_json) == 200:
-                        self.is_post = True
-                        if is_commit:
-                            
-                            self.sqldatabase.update_commit_table(self.today_inspection[0])
-                        self.sqldatabase.update_post_table(end_date, self.today_inspection[0])
-                else:
+                    if mes.post_inspection(inspection_json) != 200:
+                        is_db_update = False
+                if is_db_update :
                     self.is_post = True
                     if is_commit:
                         self.sqldatabase.update_commit_table(self.today_inspection[0])
                     self.sqldatabase.update_post_table(end_date, self.today_inspection[0])
             self.sleep(0.01)
     def run(self):
-        
-
         # [jk] add
         if self.stackedWidget.currentIndex() == 2:
                 self.camera_working=True
@@ -287,9 +276,7 @@ class BoardDefectDetect(QThread):
                                 self.ipgnpe_board_detect()
                             else:    
                                 self.board_detect()
-                            # predict_list = self.board_model.process_predictions(board_pred, frame, im)
 
-                                    
                     else:
                         print("no data")
                     
@@ -364,7 +351,7 @@ class BoardDefectDetect(QThread):
                 for *xyxy, conf, cls in reversed(det):
                     xywh = (xyxy2xywh(torch.tensor(xyxy).view(1, 4)) / gn).view(-1).tolist()
 
-                    if (xywh[2]>0.23 and xywh[3]>0.25) and (xywh[0]>0.34 and xywh[0]<0.68):
+                    if (xywh[2]>IPO_POS_CHECK[4] and xywh[3]>IPO_POS_CHECK[5]) and (xywh[0]>IPO_POS_CHECK[0] and xywh[0]<IPO_POS_CHECK[3]):
 
                         xywh.append(xywh_count)
                         xywh_count += 1
@@ -377,12 +364,12 @@ class BoardDefectDetect(QThread):
                 board_list = self.board_check(ob_xyxy_list, ob_xywh_list)
                 if board_list :
                     ipg_center_check = True
-                    if self.board_check_flag == 0 :
+                    if self.board_check_flag == 0 : # [comment] 센터에 온 경우, 첫 번째에만 검출되도록
                         self.board_check_flag = 1
-                        self.board_count += len(board_list)
-                    elif self.board_check_flag == 1:
+                        self.total_board_count += len(board_list)
+                    elif self.board_check_flag == 1: # [comment] 센터에 온 경우, 두 번째부터는 검출 안되도록
                         self.board_check_flag = 2
-                else:
+                else: # [comment] 센터 아닌 경우 변수 리셋
                     xywh_count = 0
                     ob_xyxy_list = []
                     ob_xywh_list = []
@@ -390,18 +377,16 @@ class BoardDefectDetect(QThread):
                     self.board_check_flag = 0
 
                 result_list = []
-                board_count = 0
                 dtime = datetime.datetime.now()
                 dtime = f"{dtime.year}{change_time_format(dtime.month)}{change_time_format(dtime.day)}{change_time_format(dtime.hour)}{change_time_format(dtime.minute)}{change_time_format(dtime.second)}"
-                edge_count = 0
                 defect_list = []
                 # cv2.imwrite(f"/home/pi/test/{p.stem}_{board_count}.jpg", board)
                 # board_count+=1
-                if ipg_center_check and self.board_check_flag == 1:
-                    defect_check_count = False
-                    board_list_count = 0
+                if ipg_center_check and self.board_check_flag == 1: # [comment] 첫 센터에 온 경우 불량 검출
+                    defect_check_count = False # [comment] 전체 기판에서 불량이 하나라도 나온 경우, 검출 알림을 위해 체크
+                    board_count = 0 
                     for board in board_list :
-                        defect_check = False
+                        defect_check = False  # [comment] 보드 하나에서 불량이 하나라도 나온 경우 불량 수 count
                         self.select_defect_model.img_processing(board)
                         self.select_defect_model.inference()
                         for i, det in enumerate(self.select_defect_model.pred):
@@ -418,201 +403,85 @@ class BoardDefectDetect(QThread):
                                 for *xyxy, conf, cls in reversed(det):
                                     xywh_defect = (xyxy2xywh(torch.tensor(xyxy).view(1, 4)) / board_gn).view(-1).tolist()
                                     c = int(cls)
+                                    defect_flag = False
                                     if xywh_defect[2]>0.032:
                                         if c == 1:
                                             if xywh_defect[3]>0.044:
-                                                self.file_write.write(f"{self.select_defect_model.model.names[c]}  {conf} {xywh_defect}\r\n")
-                                                defect_check = True
-                                                defect_check_count = True
-                                                self.defect_type_count[self.select_defect_type[c]]+=1
-
-
-                                                self.defect_type_label = self.defect_type_list[self.select_defect_type[c]]
-                                                defect_list.append(self.select_defect_type[c])
-                                                label = ""
-                                                annotator.box_label(xyxy, label, color=colors(c, True), classes=self.select_defect_type[c])
+                                                defect_flag = True
                                         else:
                                             if self.workorder_item.get_current_text().find("230M") != -1 :
                                                 if c == 18 or c == 2:
-                                                    if board_list_count%2 == 0:
+                                                    if board_count%2 == 0:
                                                         if(xywh_defect[0]>0.16 and xywh_defect[0]<0.24):
                                                             pass
                                                         else:
-                                                            self.file_write.write(f"{self.select_defect_model.model.names[c]}  {conf} {xywh_defect}\r\n")
-                                                            defect_check = True
-                                                            defect_check_count = True
-                                                            self.defect_type_count[self.select_defect_type[c]]+=1
-
-
-                                                            self.defect_type_label = self.defect_type_list[self.select_defect_type[c]]
-                                                            defect_list.append(self.select_defect_type[c])
-                                                            label = ""
-                                                            annotator.box_label(xyxy, label, color=colors(c, True), classes=self.select_defect_type[c])
+                                                            defect_flag = True
                                                     else:
                                                         if(xywh_defect[0]>0.72 and xywh_defect[0]<0.82):
                                                             pass
                                                         else:
-                                                            self.file_write.write(f"{self.select_defect_model.model.names[c]}  {conf} {xywh_defect}\r\n")
-                                                            defect_check = True
-                                                            defect_check_count = True
-                                                            self.defect_type_count[self.select_defect_type[c]]+=1
-
-
-                                                            self.defect_type_label = self.defect_type_list[self.select_defect_type[c]]
-                                                            defect_list.append(self.select_defect_type[c])
-                                                            label = ""
-                                                            annotator.box_label(xyxy, label, color=colors(c, True), classes=self.select_defect_type[c])
+                                                            defect_flag = True
                                                 else:
-                                                    self.file_write.write(f"{self.select_defect_model.model.names[c]}  {conf} {xywh_defect}\r\n")
-                                                    defect_check = True
-                                                    defect_check_count = True
-                                                    self.defect_type_count[self.select_defect_type[c]]+=1
-
-
-                                                    self.defect_type_label = self.defect_type_list[self.select_defect_type[c]]
-                                                    defect_list.append(self.select_defect_type[c])
-                                                    label = ""
-                                                    annotator.box_label(xyxy, label, color=colors(c, True), classes=self.select_defect_type[c])
+                                                    defect_flag = True
                                             elif self.workorder_item.get_current_text().find("TYPE") != -1 :
                                                 if c == 18 or c == 2:
-                                                    if board_list_count%2 == 0:
+                                                    if board_count%2 == 0:
                                                         if(xywh_defect[0]>0.54 and xywh_defect[0]<0.64):
                                                             pass
                                                         else:
-                                                            self.file_write.write(f"{self.select_defect_model.model.names[c]}  {conf} {xywh_defect}\r\n")
-                                                            defect_check = True
-                                                            defect_check_count = True
-                                                            self.defect_type_count[self.select_defect_type[c]]+=1
-
-
-                                                            self.defect_type_label = self.defect_type_list[self.select_defect_type[c]]
-                                                            defect_list.append(self.select_defect_type[c])
-                                                            label = ""
-                                                            annotator.box_label(xyxy, label, color=colors(c, True), classes=self.select_defect_type[c])
+                                                            defect_flag = True
                                                     else:
                                                         if(xywh_defect[0]>0.34 and xywh_defect[0]<0.43):
                                                             pass
                                                         else:
-                                                            self.file_write.write(f"{self.select_defect_model.model.names[c]}  {conf} {xywh_defect}\r\n")
-                                                            defect_check = True
-                                                            defect_check_count = True
-                                                            self.defect_type_count[self.select_defect_type[c]]+=1
-
-
-                                                            self.defect_type_label = self.defect_type_list[self.select_defect_type[c]]
-                                                            defect_list.append(self.select_defect_type[c])
-                                                            label = ""
-                                                            annotator.box_label(xyxy, label, color=colors(c, True), classes=self.select_defect_type[c])
+                                                            defect_flag = True
                                                 else:
-                                                    self.file_write.write(f"{self.select_defect_model.model.names[c]}  {conf} {xywh_defect}\r\n")
-                                                    defect_check = True
-                                                    defect_check_count = True
-                                                    self.defect_type_count[self.select_defect_type[c]]+=1
-
-
-                                                    self.defect_type_label = self.defect_type_list[self.select_defect_type[c]]
-                                                    defect_list.append(self.select_defect_type[c])
-                                                    label = ""
-                                                    annotator.box_label(xyxy, label, color=colors(c, True), classes=self.select_defect_type[c])
+                                                    defect_flag = True
                                             elif self.workorder_item.get_current_text().find("230S-") != -1 :
                                                 if c == 18 or c == 2:
-                                                    if board_list_count%2 == 0:
+                                                    if board_count%2 == 0:
                                                         if(xywh_defect[0]>0.60 and xywh_defect[0]<0.70):
                                                             pass
                                                         else:
-                                                            self.file_write.write(f"{self.select_defect_model.model.names[c]}  {conf} {xywh_defect}\r\n")
-                                                            defect_check = True
-                                                            defect_check_count = True
-                                                            self.defect_type_count[self.select_defect_type[c]]+=1
-
-
-                                                            self.defect_type_label = self.defect_type_list[self.select_defect_type[c]]
-                                                            defect_list.append(self.select_defect_type[c])
-                                                            label = ""
-                                                            annotator.box_label(xyxy, label, color=colors(c, True), classes=self.select_defect_type[c])
+                                                            defect_flag = True
                                                     else:
                                                         if(xywh_defect[0]>0.30 and xywh_defect[0]<0.40):
                                                             pass
                                                         else:
-                                                            self.file_write.write(f"{self.select_defect_model.model.names[c]}  {conf} {xywh_defect}\r\n")
-                                                            defect_check = True
-                                                            defect_check_count = True
-                                                            self.defect_type_count[self.select_defect_type[c]]+=1
-
-
-                                                            self.defect_type_label = self.defect_type_list[self.select_defect_type[c]]
-                                                            defect_list.append(self.select_defect_type[c])
-                                                            label = ""
-                                                            annotator.box_label(xyxy, label, color=colors(c, True), classes=self.select_defect_type[c])
+                                                            defect_flag = True
                                                             
                                                 else:
-                                                    self.file_write.write(f"{self.select_defect_model.model.names[c]}  {conf} {xywh_defect}\r\n")
-                                                    defect_check = True
-                                                    defect_check_count = True
-                                                    self.defect_type_count[self.select_defect_type[c]]+=1
-
-
-                                                    self.defect_type_label = self.defect_type_list[self.select_defect_type[c]]
-                                                    defect_list.append(self.select_defect_type[c])
-                                                    label = ""
-                                                    annotator.box_label(xyxy, label, color=colors(c, True), classes=self.select_defect_type[c])
+                                                    defect_flag = True
 
                                             elif self.workorder_item.get_current_text().find("120S") != -1 :
                                                 if c == 18 or c == 2:
-                                                    if board_list_count%2 == 0:
+                                                    if board_count%2 == 0:
                                                         if(xywh_defect[0]>0.72 and xywh_defect[0]<0.91):
                                                             pass
                                                         else:
-                                                            self.file_write.write(f"{self.select_defect_model.model.names[c]}  {conf} {xywh_defect}\r\n")
-                                                            defect_check = True
-                                                            defect_check_count = True
-                                                            self.defect_type_count[self.select_defect_type[c]]+=1
-
-
-                                                            self.defect_type_label = self.defect_type_list[self.select_defect_type[c]]
-                                                            defect_list.append(self.select_defect_type[c])
-                                                            label = ""
-                                                            annotator.box_label(xyxy, label, color=colors(c, True), classes=self.select_defect_type[c])
+                                                            defect_flag = True
                                                     else:
                                                         if(xywh_defect[0]>0.08 and xywh_defect[0]<0.25):
                                                             pass
                                                         else:
-                                                            self.file_write.write(f"{self.select_defect_model.model.names[c]}  {conf} {xywh_defect}\r\n")
-                                                            defect_check = True
-                                                            defect_check_count = True
-                                                            self.defect_type_count[self.select_defect_type[c]]+=1
-
-
-                                                            self.defect_type_label = self.defect_type_list[self.select_defect_type[c]]
-                                                            defect_list.append(self.select_defect_type[c])
-                                                            label = ""
-                                                            annotator.box_label(xyxy, label, color=colors(c, True), classes=self.select_defect_type[c])
+                                                            defect_flag = True
                                                 else:
-                                                    self.file_write.write(f"{self.select_defect_model.model.names[c]}  {conf} {xywh_defect}\r\n")
-                                                    defect_check = True
-                                                    defect_check_count = True
-                                                    self.defect_type_count[self.select_defect_type[c]]+=1
-
-
-                                                    self.defect_type_label = self.defect_type_list[self.select_defect_type[c]]
-                                                    defect_list.append(self.select_defect_type[c])
-                                                    label = ""
-                                                    annotator.box_label(xyxy, label, color=colors(c, True), classes=self.select_defect_type[c])
+                                                    defect_flag = True
                                             else:
 
-                                                self.file_write.write(f"{self.select_defect_model.model.names[c]}  {conf} {xywh_defect}\r\n")
-                                                defect_check = True
-                                                defect_check_count = True
-                                                self.defect_type_count[self.select_defect_type[c]]+=1
+                                                defect_flag = True
 
-                                                                
-        
-                                                self.defect_type_label = self.defect_type_list[self.select_defect_type[c]]
-                                                defect_list.append(self.select_defect_type[c])
-                                                label = ""
-                                                annotator.box_label(xyxy, label, color=colors(c, True), classes=self.select_defect_type[c])
+                                    if defect_flag :
+                                        self.file_write.write(f"{self.select_defect_model.model.names[c]}  {conf} {xywh_defect}\r\n")
+                                        defect_check = True
+                                        defect_check_count = True
+                                        self.defect_type_count[self.select_defect_type[c]]+=1
 
 
+                                        self.defect_type_label = self.defect_type_list[self.select_defect_type[c]]
+                                        defect_list.append(self.select_defect_type[c])
+                                        label = ""
+                                        annotator.box_label(xyxy, label, color=colors(c, True), classes=self.select_defect_type[c])
 
                             crop_im0 = annotator.result()
                             
@@ -622,7 +491,7 @@ class BoardDefectDetect(QThread):
 
                         if defect_check :
                             self.defect_count +=1
-                        board_list_count+=1
+                        board_count+=1
                     if len(result_list)>0 and len(result_list)%2 == 0 and defect_check_count:
                         img_list = [result_list[i:i+LIST_LENTH] for i in range(0, len(result_list), LIST_LENTH)]
                         save_img = cv2.vconcat([cv2.hconcat(img) for img in img_list])
@@ -643,9 +512,9 @@ class BoardDefectDetect(QThread):
                 write_file = f"/media/user/exFAT/mj_test/230619/ori/{dtime}.jpg"
 
                 cv2.imwrite(os.path.join(self.ori_path_dir, dtime+".jpg"), self.select_board_model.frame)
-            # print(path.stem, "board count", self.board_count, "self.defect_count", sum(self.defect_count_list), "self.defect_type_count", self.defect_type_count)
+            # print(path.stem, "board count", self.total_board_count, "self.defect_count", sum(self.defect_count_list), "self.defect_type_count", self.defect_type_count)
    
-        self.update_data.emit(self.board_count, self.defect_count, self.defect_type_label)
+        self.update_data.emit(self.total_board_count, self.defect_count, self.defect_type_label)
     # def ipgnpe_board_check(self):
     def ipgnpe_board_detect(self, p=None):
         if not PRODUCT_FLAG:
@@ -689,7 +558,7 @@ class BoardDefectDetect(QThread):
                     ipg_center_check = True
                     if self.board_check_flag == 0 :
                         self.board_check_flag = 1
-                        self.board_count += len(board_list)
+                        self.total_board_count += len(board_list)
                     elif self.board_check_flag == 1:
                         self.board_check_flag = 2
                 else:
@@ -699,10 +568,8 @@ class BoardDefectDetect(QThread):
                     ipg_center_check = False
                     self.board_check_flag = 0
                 result_list = []
-                board_count = 0
                 dtime = datetime.datetime.now()
                 dtime = f"{dtime.year}{change_time_format(dtime.month)}{change_time_format(dtime.day)}{change_time_format(dtime.hour)}{change_time_format(dtime.minute)}{change_time_format(dtime.second)}"
-                edge_count = 0
                 defect_list = []
                 
                 if ipg_center_check and self.board_check_flag == 1:
@@ -771,9 +638,9 @@ class BoardDefectDetect(QThread):
                         
                 write_file = f"/media/user/exFAT/mj_test/230619/ori/{dtime}.jpg"
                 cv2.imwrite(os.path.join(self.ori_path_dir, dtime+".jpg"), self.select_board_model.frame)
-            # print(path.stem, "board count", self.board_count, "self.defect_count", sum(self.defect_count_list), "self.defect_type_count", self.defect_type_count)
+            # print(path.stem, "board count", self.total_board_count, "self.defect_count", sum(self.defect_count_list), "self.defect_type_count", self.defect_type_count)
    
-        self.update_data.emit(self.board_count, self.defect_count, self.defect_type_label)
+        self.update_data.emit(self.total_board_count, self.defect_count, self.defect_type_label)
          
     
     def get_working(self):
@@ -787,5 +654,5 @@ class BoardDefectDetect(QThread):
     def init_value_change(self, data):
         self.defect_type_count = [int(data[11].split(",")[0]),int(data[11].split(",")[1]), int(data[11].split(",")[2])]
         self.defect_count = data[10]
-        self.board_count = data[8]
+        self.total_board_count = data[8]
         self.defect_count_list[0] = int(data[11].split(",")[0])+int(data[11].split(",")[1])+int(data[11].split(",")[2])
