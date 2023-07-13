@@ -138,7 +138,7 @@ class BoardDefectDetect(QThread):
 
         board_weights = f'{MODEL_PATH}best.pt'
         board_name = f'{MODEL_PATH}data/board.yaml'
-        defect_weights = f'{MODEL_PATH}230706_ipo_defect-int8_edgetpu.tflite'
+        defect_weights = f'{MODEL_PATH}230710_ipo_defect-int8_edgetpu.tflite'
         defect_name = f'{MODEL_PATH}data/defect.yaml'
         ipgnpe_board_weights = f'{MODEL_PATH}ipgnpe_oneboard.pt'
         ipgnpe_defect_weights = f'{MODEL_PATH}230706_ipgnpe_defect.pt'
