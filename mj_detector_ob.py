@@ -195,8 +195,9 @@ class BoardDefectDetect(QThread):
 
         # [jk] add
         self.camera_working = False
-        self.ori_path_dir, self.defect_path_dir = getSavePathDir()
-
+        self.ori_path_dir = ""
+        self.defect_path_dir = ""
+        self.file_path_dir = ""
     def today_inspection_change(self, today_inspection):
          self.today_inspection = today_inspection
     
@@ -257,7 +258,9 @@ class BoardDefectDetect(QThread):
                 self.select_defect_model.add_classes(22,22)
                 
 
-            self.file_write = open("log.txt", "a")
+            self.ori_path_dir, self.defect_path_dir, self.file_path_dir = getSavePathDir(self.workorder_item.get_current_text())
+
+            self.file_write = open(f"{self.file_path_dir}/log.txt", "a")
             self.is_post = False
             self.working=True
             self.defect_show_list = [] 

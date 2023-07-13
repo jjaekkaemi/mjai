@@ -16,22 +16,23 @@ def change_time_format(str_time):
 		return str(str_time)
 	else :
 		return '0'+str(str_time)
-def getSavePathDir():
+def getSavePathDir(workorder_item):
     ssd_path = "/media/user/exFAT/mj_test"
     now_datetime = datetime.datetime.now()
-    ssd_datetime = f"{str(now_datetime.year)[2:4]}{change_time_format(now_datetime.month)}{change_time_format(now_datetime.day)}"
+    ssd_datetime = f"{str(now_datetime.year)[2:4]}{change_time_format(now_datetime.month)}{change_time_format(now_datetime.day)}_{workorder_item}"
     save_path_dir = os.path.join(ssd_path, ssd_datetime)
     ori_path_dir = ""
     defect_path_dir = ""
-
+    file_path_dir = ""
     if os.path.exists(save_path_dir) == False:
         os.makedirs(save_path_dir)
     ori_path_dir = os.path.join(save_path_dir, "ori")
     defect_path_dir = os.path.join(save_path_dir, "defect")
+    file_path_dir = save_path_dir
     if os.path.exists(ori_path_dir) == False:
         os.makedirs(ori_path_dir)
         os.makedirs(defect_path_dir)
-    return ori_path_dir, defect_path_dir
+    return ori_path_dir, defect_path_dir,file_path_dir
 
 class EdgeTpuModel():
     def __init__(self,  weights, class_name, imgsz = [416,416], conf_thres = 0.5, iou_thres = 0.45, classes = None):

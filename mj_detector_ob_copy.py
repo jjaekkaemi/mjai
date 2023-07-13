@@ -200,7 +200,10 @@ class BoardDefectDetect(QThread):
 
         # [jk] add
         self.camera_working = False
-        self.ori_path_dir, self.defect_path_dir = getSavePathDir()
+        self.ori_path_dir = ""
+        self.defect_path_dir = ""
+        self.file_path_dir = ""
+        
     def today_inspection_change(self, today_inspection):
          self.today_inspection = today_inspection
     
@@ -231,8 +234,6 @@ class BoardDefectDetect(QThread):
                     self.sqldatabase.update_post_table(end_date, self.today_inspection[0])
             self.sleep(0.01)
     def run(self):
-        
-
         # [jk] add
         if self.stackedWidget.currentIndex() == 2:
                 self.camera_working=True
@@ -250,7 +251,6 @@ class BoardDefectDetect(QThread):
                     dataset = LoadImages(TEST_IMG_PATH, img_size=[416,416], stride=32, auto=self.select_board_model.model.pt, vid_stride=1)
                     for path, im, im0s, vid_cap, s in dataset:
                         if self.camera_working:
-                            
                             self.camera_view_connect.emit(im0s)
                                 
                         else:
@@ -266,9 +266,9 @@ class BoardDefectDetect(QThread):
             elif self.workorder_item.get_current_text().find("120S") != -1:
                 self.select_defect_model.add_classes(16,16)
                 self.select_defect_model.add_classes(22,22)
-                
+            self.ori_path_dir, self.defect_path_dir, self.file_path_dir = getSavePathDir(self.workorder_item.get_current_text())
 
-            self.file_write = open("log.txt", "a")
+            
             self.is_post = False
             self.working=True
             self.defect_show_list = [] 
@@ -278,6 +278,7 @@ class BoardDefectDetect(QThread):
                     
                     ret = self.cam.MV_CC_GetOneFrameTimeout(self.data_buf, self.nPayloadSize, self.stFrameInfo, 1000)
                     if ret == 0:
+                            self.file_write = open(os.path.join(self.file_path_dir,"log.txt"), "a")
                             # print ("get one frame: Width[%d], Height[%d], PixelType[0x%d], nFrameNum[%d]"  % (stFrameInfo.nWidth, stFrameInfo.nHeight, stFrameInfo.enPixelType,stFrameInfo.nFrameNum))
                             data = np.frombuffer(self.data_buf, count=int(self.stFrameInfo.nFrameLen), dtype=np.uint8)
                             frame = image_control(data=data, stFrameInfo=self.stFrameInfo)
@@ -287,6 +288,7 @@ class BoardDefectDetect(QThread):
                                 self.ipgnpe_board_detect()
                             else:    
                                 self.board_detect()
+                            self.file_write.close()
                             # predict_list = self.board_model.process_predictions(board_pred, frame, im)
 
                                     
