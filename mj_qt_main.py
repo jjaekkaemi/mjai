@@ -7,7 +7,7 @@ from PySide2.QtMultimedia import QMediaPlayer, QMediaContent, QMediaPlaylist
 
 from qt_style import TitleLabel, TitleCombox
 import sys, datetime
-from mj_detector_ob_copy import BoardDefectDetect,PRODUCT_FLAG
+from mj_detector_ob import BoardDefectDetect,PRODUCT_FLAG
 from database import SQLDatabase
 import os
 SOUND_LIST = ["no_s.mp3", "no_f.mp3", "s.mp3"]
@@ -256,12 +256,12 @@ class Main(QWidget):
                     "end_date":self.inspection_stop_time.text(),
                     "inspector_name":self.inspector_name.get_current_text(),
                     "workorder_quantity":change_text(self.workorder_quantity.get_label()),
-                    "inspection_quantity":self.boardDefectDetect.board_count,
-                    "inspection_percent":int((self.boardDefectDetect.board_count/change_text(self.workorder_quantity.get_label()))*100),
+                    "inspection_quantity":self.boardDefectDetect.total_board_count,
+                    "inspection_percent":int((self.boardDefectDetect.total_board_count/change_text(self.workorder_quantity.get_label()))*100),
                     "bad_quantity":self.boardDefectDetect.defect_count,
                     
                     "bad_type":[{"143": self.boardDefectDetect.defect_type_count[0], "116": self.boardDefectDetect.defect_type_count[1], "115":self.boardDefectDetect.defect_type_count[2]}],
-                    "normal_quantity":self.boardDefectDetect.board_count-self.boardDefectDetect.defect_count,       
+                    "normal_quantity":self.boardDefectDetect.total_board_count-self.boardDefectDetect.defect_count,       
                 }
         return inspection_json
     def ui_value_change(self, data, is_today):
@@ -332,7 +332,7 @@ class Main(QWidget):
         self.boardDefectDetect.defect_board_flag = [False,False,False,False,False,False]
         self.boardDefectDetect.defect_count_list = [0,0,0,0,0,0]
         self.boardDefectDetect.defect_alarm = False
-        self.boardDefectDetect.board_count = 0 
+        self.boardDefectDetect.total_board_count = 0 
         self.boardDefectDetect.defect_count = 0 
         self.boardDefectDetect.defect_type_label = ""
         self.boardDefectDetect.board_flag = False

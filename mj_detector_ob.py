@@ -322,18 +322,24 @@ class BoardDefectDetect(QThread):
        
     def ipo_work_check(self, c, xywh_defect, board_count):
         if xywh_defect[2]>0.032:
-            if c == 1 and xywh_defect[3]>0.044:
-                return True
+            if c == 1 :
+                if xywh_defect[3]>0.044:
+                    return True
+                else: 
+                    return False
+                
             else:
                 for ipo in IPO_WORKORDER_CHECK:
                     if self.workorder_item.get_current_text().find(ipo) != -1:
                         if c == 18 or c == 2:
+                            
                             if xywh_defect[0]<=IPO_WORKORDER_CHECK[ipo][board_count%2][0] or xywh_defect[0]>=IPO_WORKORDER_CHECK[ipo][board_count%2][1]:
                                 return True
+                            else :
+                                return False
                         else:
                             return True
-                    else:
-                        return True
+                return True
         return False
     def defect_detect(self, result_list, list_lenth, defect_list, dtime):
         img_list = [result_list[i:i+list_lenth] for i in range(0, len(result_list), list_lenth)]
@@ -348,7 +354,8 @@ class BoardDefectDetect(QThread):
             self.sound_data.emit(defect_list)
 
             cv2.imwrite(os.path.join(self.defect_path_dir, dtime+".jpg"), save_img)
-    def board_detect(self, IPO = True, p=None):     
+    def board_detect(self, IPO = True, p=None):    
+                
         if not PRODUCT_FLAG:
             p = Path(p)
         for i, det in enumerate(self.select_board_model.pred):
@@ -357,7 +364,12 @@ class BoardDefectDetect(QThread):
             imc = im0.copy()
             
             center_check = False
+            dtime = "" 
+            dtime = datetime.datetime.now()
+            dtime = f"{dtime.year}{change_time_format(dtime.month)}{change_time_format(dtime.day)}{change_time_format(dtime.hour)}{change_time_format(dtime.minute)}{change_time_format(dtime.second)}"
+                    
             if len(det):
+                
                 # Rescale boxes from img_size to im0 size
                 det[:, :4] = scale_boxes(self.select_board_model.im.shape[2:], det[:, :4], im0.shape).round()
                 xywh_count = 0
@@ -386,6 +398,7 @@ class BoardDefectDetect(QThread):
                         ob_xyxy_list.append(crop_img)
                         ob_xywh_list.append(xywh)
                 board_list = self.board_check(IPO, IPO_LIST_LENTH if IPO else IPGNPE_LIST_LENTH, ob_xyxy_list, ob_xywh_list) 
+                print(len(board_list))
                 if board_list :
                     center_check = True
                     if self.board_check_flag == 0 : # [comment] 센터에 온 경우, 첫 번째에만 검출되도록
@@ -408,8 +421,6 @@ class BoardDefectDetect(QThread):
                     board_count = 0 
                     result_list = []
                     defect_list = []
-                    dtime = datetime.datetime.now()
-                    dtime = f"{dtime.year}{change_time_format(dtime.month)}{change_time_format(dtime.day)}{change_time_format(dtime.hour)}{change_time_format(dtime.minute)}{change_time_format(dtime.second)}"
                     
                     for board in board_list :
                         defect_check = False  # [comment] 보드 하나에서 불량이 하나라도 나온 경우 불량 수 count
