@@ -398,7 +398,6 @@ class BoardDefectDetect(QThread):
                         ob_xyxy_list.append(crop_img)
                         ob_xywh_list.append(xywh)
                 board_list = self.board_check(IPO, IPO_LIST_LENTH if IPO else IPGNPE_LIST_LENTH, ob_xyxy_list, ob_xywh_list) 
-                print(len(board_list))
                 if board_list :
                     center_check = True
                     if self.board_check_flag == 0 : # [comment] 센터에 온 경우, 첫 번째에만 검출되도록
